@@ -25,4 +25,10 @@ Personal website: Astro + TypeScript + Three.js + GSAP, deployed to GitHub Pages
 - Debug from evidence: targeted logging, fix root causes.
 
 ## Commands
-- Fill in after Phase 1: dev, build, preview, lint, test.
+- `npm run dev` — dev server
+- `npm run build` — `astro check` then `astro build` (type errors fail the build)
+- `npm run preview` — serve `dist/`
+- `npm run check` — type-check only
+- `npm run lint` — ESLint
+- `npm run format` — Prettier (Markdown docs are excluded)
+- test: not set up yet (Vitest arrives in Phase 4)
