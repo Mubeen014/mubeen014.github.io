@@ -5,7 +5,7 @@
 export const siteConfig = {
   name: 'Mubeen', // [TODO] full name
   monogram: 'M',
-  role: '[TODO] One-line role, e.g. machine learning engineer',
+  role: '[TODO] Machine learning engineer',
   githubUrl: 'https://github.com/Mubeen014',
   linkedinUrl: 'https://www.linkedin.com/', // [TODO] profile URL
   email: 'hello@example.com', // [TODO] real address

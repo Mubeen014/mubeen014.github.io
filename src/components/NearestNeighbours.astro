@@ -1,7 +1,8 @@
 ---
 /**
  * "Nearest neighbours" block for a detail page: the closest entries in the latent space,
- * i.e. the entries sharing the most tags, each as a card showing its similarity on hover/focus.
+ * i.e. the entries sharing the most tags, each as a card with its similarity always shown
+ * (phones have no hover) and its coordinates on hover/focus.
  *
  * Props:
  * - neighbours: related entries with similarities, most similar first (non-empty).
@@ -22,7 +23,8 @@ const { neighbours } = Astro.props;
   <p class="mono">entries sharing the most tags · jaccard similarity</p>
   <ul class="grid">
     {neighbours.map(({ entry, similarity }) => (
-      <li>
+      <li class="neighbour">
+        <p class="similarity mono">sim = {similarity.toFixed(2)}</p>
         <Card
           title={entry.title}
           subtitle={entry.subtitle}
@@ -31,7 +33,7 @@ const { neighbours } = Astro.props;
           kind={entry.kind}
           dateRange={formatDateRange(entry.startDate, entry.endDate)}
           tags={entry.tags}
-          coords={`sim = ${similarity.toFixed(2)}`}
+          coords={entry.coords}
           placeholder={entry.placeholder}
         />
       </li>
@@ -53,5 +55,13 @@ const { neighbours } = Astro.props;
     margin: var(--space-3) 0 0;
     padding: 0;
     list-style: none;
+  }
+  .neighbour {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .similarity {
+    color: var(--text-muted);
   }
 </style>

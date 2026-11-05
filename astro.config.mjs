@@ -9,4 +9,18 @@ export default defineConfig({
   output: 'static',
   trailingSlash: 'always',
   integrations: [mdx()],
+  vite: {
+    build: {
+      rolldownOptions: {
+        output: {
+          // Three.js in its own chunk: cached across deploys and measurable on its own.
+          codeSplitting: {
+            groups: [
+              { name: 'three', test: /[\\/]node_modules[\\/]three[\\/]/ },
+            ],
+          },
+        },
+      },
+    },
+  },
 });

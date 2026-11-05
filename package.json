@@ -14,16 +14,19 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "check:determinism": "node scripts/check-determinism.mjs"
+    "check:determinism": "node scripts/check-determinism.mjs",
+    "size": "node scripts/report-size.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.1.2",
     "@fontsource/geist-mono": "^5.3.0",
     "@fontsource/geist-sans": "^5.3.0",
-    "astro": "^7.4.5"
+    "astro": "^7.4.5",
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
+    "@types/three": "^0.187.0",
     "eslint": "^10.14.0",
     "eslint-plugin-astro": "^3.2.1",
     "prettier": "^3.9.10",

@@ -1,6 +1,6 @@
 ---
 /**
- * Home: hero (static gradient where the latent-space canvas will mount in Phase 4), about,
+ * Home: hero (3D latent space over a static gradient, mounted after first paint), about,
  * featured projects, career timeline and contact.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
@@ -12,6 +12,11 @@ import { getAllEntries, getProjectCovers } from '../lib/entries';
 import { formatDateRange } from '../lib/dates';
 import { siteConfig } from '../lib/site';
 import { url } from '../lib/paths';
+import {
+  LATENT_SPACE_DATA_ID,
+  serialiseLatentSpaceData,
+  toLatentSpaceData,
+} from '../lib/latent-space-data';
 
 const entries = await getAllEntries();
 const featuredProjects = entries.filter(
@@ -19,6 +24,7 @@ const featuredProjects = entries.filter(
 );
 const career = entries.filter((entry) => entry.kind !== 'project');
 const covers = await getProjectCovers();
+const latentSpaceJson = serialiseLatentSpaceData(toLatentSpaceData(entries));
 
 const facts = [
   { label: 'based in', value: '[TODO] City' },
@@ -29,7 +35,12 @@ const facts = [
 
 <BaseLayout title="Home" description={`${siteConfig.name}: ${siteConfig.role}`}>
   <section class="hero" aria-labelledby="hero-name">
-    <div class="hero-space" aria-hidden="true"></div>
+    <div class="hero-space" aria-hidden="true" data-latent-space></div>
+    <script
+      type="application/json"
+      id={LATENT_SPACE_DATA_ID}
+      set:html={latentSpaceJson}
+    />
     <div class="container hero-content">
       <h1 id="hero-name" class="hero-name">
         {siteConfig.name}
@@ -41,6 +52,9 @@ const facts = [
           Contact
         </Button>
       </div>
+      <p class="hero-hint mono" aria-hidden="true">
+        drag to orbit
+      </p>
     </div>
   </section>
 
@@ -139,6 +153,36 @@ const facts = [
   </section>
 </BaseLayout>
 
+<script>
+  /**
+   * Loads the 3D latent space after the page has loaded, so the hero text paints (and is
+   * the LCP element) before any WebGL code is fetched.
+   */
+  import {
+    LATENT_SPACE_DATA_ID,
+    parseLatentSpaceData,
+  } from '../lib/latent-space-data';
+
+  const container = document.querySelector<HTMLElement>('[data-latent-space]');
+  const json = document.getElementById(LATENT_SPACE_DATA_ID)?.textContent;
+  if (!container || !json) {
+    throw new Error('Home: latent space container or data not found');
+  }
+  const data = parseLatentSpaceData(json);
+
+  const start = () =>
+    requestAnimationFrame(async () => {
+      const { mountLatentSpace } =
+        await import('../scripts/latent-space/scene');
+      mountLatentSpace(container, data);
+    });
+  if (document.readyState === 'complete') {
+    start();
+  } else {
+    window.addEventListener('load', start, { once: true });
+  }
+</script>
+
 <style>
   .hero {
     position: relative;
@@ -150,8 +194,9 @@ const facts = [
     ); /* sit under the transparent nav */
     padding-block: calc(var(--nav-height) + var(--space-7)) var(--space-8);
     overflow: hidden;
+    isolation: isolate; /* keeps the canvas (z-index -1) inside the hero and hit-testable */
   }
-  /* Static stand-in for the 3D latent space (Phase 4 mounts the canvas here). */
+  /* Static gradient shows at first paint; the canvas fades in over it once rendered. */
   .hero-space {
     position: absolute;
     inset: 0;
@@ -162,7 +207,19 @@ const facts = [
       radial-gradient(circle at 20% 80%, var(--bg-raised), transparent 60%),
       var(--bg);
   }
+  .hero-space :global(canvas) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+  .hero-space[data-ready] :global(canvas) {
+    opacity: 1;
+  }
   .hero-content {
+    pointer-events: none; /* drags over the text area still reach the canvas */
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -184,6 +241,14 @@ const facts = [
     flex-wrap: wrap;
     gap: var(--space-3);
     margin-top: var(--space-2);
+    pointer-events: auto;
+  }
+  .hero-hint {
+    opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+  .hero:has([data-ready]) .hero-hint {
+    opacity: 1;
   }
 
   .section {
