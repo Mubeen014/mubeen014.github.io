@@ -1,0 +1,34 @@
+---
+title: Project Alpha
+summary: Placeholder. Modelling irregular event streams with neural temporal point processes.
+startDate: 2024-03-01
+role: Lead developer
+tags: [probabilistic-modelling, time-series, pytorch, research]
+featured: true
+placeholder: true
+links:
+  repo: https://example.com/project-alpha
+  paper: https://example.com/project-alpha/paper
+---
+
+## Problem
+
+Placeholder copy. Event logs arrive at irregular times, and fixed-interval forecasting throws away
+the timing information that matters most. The goal was to predict when the next event happens,
+not just how many events fall in a bucket.
+
+## Approach
+
+A neural temporal point process with a transformer encoder over event history, trained by
+maximising the log-likelihood of observed inter-event times. Baselines were a Hawkes process and
+a binned forecasting model.
+
+## Results
+
+Placeholder numbers: a 14% lower negative log-likelihood than the Hawkes baseline, and calibrated
+next-event intervals on held-out data.
+
+## Learnings
+
+Evaluation design took longer than modelling. Likelihood alone hides calibration problems, so
+interval coverage became the main metric.

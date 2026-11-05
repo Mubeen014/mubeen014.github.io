@@ -26,7 +26,7 @@ const Element = interactive ? 'button' : 'span';
 ---
 
 <Element
-  class:list={['chip', { interactive, selected }, className]}
+  class:list={['chip', { interactive }, className]}
   type={interactive ? 'button' : undefined}
   aria-pressed={interactive ? selected : undefined}
 >
@@ -60,13 +60,16 @@ const Element = interactive ? 'button' : 'span';
     border-color: var(--accent);
   }
 
-  /* Selected is marked by a square dot as well as colour, so it never relies on colour alone. */
-  .selected {
+  /*
+   * Selected state is driven by aria-pressed so scripts only flip one attribute. It is marked
+   * by a square dot as well as colour, so it never relies on colour alone.
+   */
+  .interactive[aria-pressed='true'] {
     background: var(--accent-soft);
     color: var(--accent);
     border-color: var(--accent);
   }
-  .selected::before {
+  .interactive[aria-pressed='true']::before {
     content: '';
     width: 6px;
     height: 6px;

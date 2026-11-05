@@ -1,21 +1,239 @@
 ---
+/**
+ * Home: hero (static gradient where the latent-space canvas will mount in Phase 4), about,
+ * featured projects, career timeline and contact.
+ */
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Button from '../components/Button.astro';
+import Card from '../components/Card.astro';
+import ProjectCover from '../components/ProjectCover.astro';
+import Timeline from '../components/Timeline.astro';
+import { getAllEntries } from '../lib/entries';
+import { formatDateRange } from '../lib/dates';
+import { siteConfig } from '../lib/site';
 import { url } from '../lib/paths';
+
+const entries = await getAllEntries();
+const featuredProjects = entries.filter(
+  (entry) => entry.kind === 'project' && entry.featured,
+);
+const career = entries.filter((entry) => entry.kind !== 'project');
+const coversById = new Map(
+  (await getCollection('projects')).map((project) => [
+    project.id,
+    project.data.cover,
+  ]),
+);
+
+const facts = [
+  { label: 'based in', value: '[TODO] City' },
+  { label: 'focus', value: '[TODO] ML engineering' },
+  { label: 'currently', value: '[TODO] Company A' },
+];
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
-    <title>Coming soon</title>
-  </head>
-  <body>
-    <main>
-      <h1>Coming soon</h1>
+<BaseLayout title="Home" description={`${siteConfig.name}: ${siteConfig.role}`}>
+  <section class="hero" aria-labelledby="hero-name">
+    <div class="hero-space" aria-hidden="true"></div>
+    <div class="container hero-content">
+      <h1 id="hero-name" class="hero-name">
+        {siteConfig.name}
+      </h1>
+      <p class="hero-role">{siteConfig.role}</p>
+      <div class="hero-actions">
+        <Button href={url('/projects/')}>View projects</Button>
+        <Button variant="secondary" href={url('/#contact')}>
+          Contact
+        </Button>
+      </div>
+    </div>
+  </section>
+
+  <section class="container section" id="about" aria-labelledby="about-heading">
+    <h2 id="about-heading">About</h2>
+    <div class="about-copy">
       <p>
-        <a href={url('/test')}>Test page</a>
+        [TODO] First paragraph: who you are and what you build, in one or two
+        plain sentences.
       </p>
-    </main>
-  </body>
-</html>
+      <p>
+        [TODO] Second paragraph: the kind of problems you like, and how
+        engineering and machine learning meet in your work.
+      </p>
+      <p>
+        [TODO] Third paragraph: what you are doing now and what you are looking
+        for.
+      </p>
+    </div>
+    <dl class="facts">
+      {facts.map(({ label, value }) => (
+        <div>
+          <dt class="mono">{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  <section
+    class="container section"
+    id="projects"
+    aria-labelledby="projects-heading"
+  >
+    <h2 id="projects-heading">Projects</h2>
+    <ul class="grid">
+      {featuredProjects.map((project) => (
+        <li>
+          <Card
+            title={project.title}
+            summary={project.summary}
+            href={project.href}
+            kind="project"
+            dateRange={formatDateRange(project.startDate, project.endDate)}
+            tags={project.tags}
+            placeholder={project.placeholder}
+          >
+            <ProjectCover
+              slot="cover"
+              tags={project.tags}
+              image={coversById.get(project.id)}
+            />
+          </Card>
+        </li>
+      ))}
+    </ul>
+    <a class="more" href={url('/projects/')}>
+      All projects →
+    </a>
+  </section>
+
+  <section
+    class="container section"
+    id="career"
+    aria-labelledby="career-heading"
+  >
+    <h2 id="career-heading">Experience &amp; education</h2>
+    <Timeline entries={career} />
+    <p class="more-links">
+      <a href={url('/experience/')}>All experience →</a>
+      <a href={url('/education/')}>All education →</a>
+    </p>
+  </section>
+
+  <section
+    class="container section contact"
+    id="contact"
+    aria-labelledby="contact-heading"
+  >
+    <h2 id="contact-heading">Contact</h2>
+    <p class="contact-copy">
+      [TODO] One or two sentences inviting people to get in touch, and about
+      what.
+    </p>
+    <div class="hero-actions">
+      <Button href={`mailto:${siteConfig.email}`}>{siteConfig.email}</Button>
+      <Button variant="secondary" href={siteConfig.githubUrl}>
+        GitHub
+      </Button>
+      <Button variant="secondary" href={siteConfig.linkedinUrl}>
+        LinkedIn
+      </Button>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: 100svh;
+    margin-top: calc(
+      -1 * var(--nav-height)
+    ); /* sit under the transparent nav */
+    padding-block: calc(var(--nav-height) + var(--space-7)) var(--space-8);
+    overflow: hidden;
+  }
+  /* Static stand-in for the 3D latent space (Phase 4 mounts the canvas here). */
+  .hero-space {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 70% 35%, var(--accent-soft), transparent 35%),
+      radial-gradient(circle at 60% 45%, var(--navy-line), transparent 55%),
+      radial-gradient(circle at 20% 80%, var(--bg-raised), transparent 60%),
+      var(--bg);
+  }
+  .hero-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+  .hero-name {
+    font-size: var(--fs-hero);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+  }
+  .hero-role {
+    max-width: 36ch;
+    font-size: var(--fs-h3);
+    line-height: 1.4;
+    color: var(--text-muted);
+  }
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding-top: var(--space-9);
+  }
+
+  .about-copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    max-width: var(--prose-width);
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4) var(--space-7);
+    margin: 0;
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--navy-line);
+  }
+  .facts dd {
+    margin: 0;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .more {
+    align-self: flex-start;
+  }
+  .more-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-6);
+  }
+
+  .contact-copy {
+    max-width: var(--prose-width);
+    color: var(--text-muted);
+  }
+</style>

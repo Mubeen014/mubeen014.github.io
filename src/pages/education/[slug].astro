@@ -1,0 +1,39 @@
+---
+/** Degree detail page, one per entry in the education collection. */
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import DetailLayout from '../../layouts/DetailLayout.astro';
+import { getAdjacentEntries } from '../../lib/entries';
+import { formatDateRange } from '../../lib/dates';
+
+export async function getStaticPaths() {
+  const degrees = await getCollection('education');
+  return degrees.map((degree) => ({
+    params: { slug: degree.id },
+    props: { degree },
+  }));
+}
+
+interface Props {
+  degree: CollectionEntry<'education'>;
+}
+
+const { degree } = Astro.props;
+const { data } = degree;
+const { Content } = await render(degree);
+const { previous, next } = await getAdjacentEntries('education', degree.id);
+---
+
+<DetailLayout
+  kind="education"
+  title={data.title}
+  summary={data.summary}
+  dateRange={formatDateRange(data.startDate, data.endDate)}
+  role={`${data.degree} ${data.field} · ${data.location}`}
+  tags={data.tags}
+  links={[]}
+  placeholder={data.placeholder}
+  previous={previous}
+  next={next}
+>
+  <Content />
+</DetailLayout>

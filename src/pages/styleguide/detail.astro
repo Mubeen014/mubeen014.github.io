@@ -4,15 +4,19 @@ import DetailLayout from '../../layouts/DetailLayout.astro';
 ---
 
 <DetailLayout
+  kind="project"
   title="Project Alpha"
   summary="Temporal point process modelling for irregular event streams. [placeholder]"
-  dateRange="2024 – present"
+  dateRange="Mar 2024 – present"
   role="Lead developer"
   tags={['point-processes', 'time-series', 'python']}
   links={[
     { label: 'Repository', href: 'https://github.com/Mubeen014' },
     { label: 'Demo', href: 'https://example.com' },
   ]}
+  placeholder={true}
+  previous={{ title: 'Previous entry', href: '#' }}
+  next={{ title: 'Next entry', href: '#' }}
   coords="z = [0.42, -1.17, 0.88]"
 >
   <h2>Problem</h2>

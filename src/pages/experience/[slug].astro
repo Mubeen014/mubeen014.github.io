@@ -1,0 +1,36 @@
+---
+/** Role detail page, one per entry in the experience collection. */
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import DetailLayout from '../../layouts/DetailLayout.astro';
+import { getAdjacentEntries } from '../../lib/entries';
+import { formatDateRange } from '../../lib/dates';
+
+export async function getStaticPaths() {
+  const roles = await getCollection('experience');
+  return roles.map((role) => ({ params: { slug: role.id }, props: { role } }));
+}
+
+interface Props {
+  role: CollectionEntry<'experience'>;
+}
+
+const { role } = Astro.props;
+const { data } = role;
+const { Content } = await render(role);
+const { previous, next } = await getAdjacentEntries('experience', role.id);
+---
+
+<DetailLayout
+  kind="experience"
+  title={data.title}
+  summary={data.summary}
+  dateRange={formatDateRange(data.startDate, data.endDate)}
+  role={`${data.position} · ${data.location} · ${data.employmentType}`}
+  tags={data.tags}
+  links={[]}
+  placeholder={data.placeholder}
+  previous={previous}
+  next={next}
+>
+  <Content />
+</DetailLayout>

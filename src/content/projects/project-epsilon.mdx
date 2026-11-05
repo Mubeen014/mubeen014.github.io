@@ -1,0 +1,29 @@
+---
+title: Project Epsilon
+summary: Placeholder. Automated de-identification of free-text records before they reach analysts.
+startDate: 2023-01-01
+endDate: 2023-07-01
+role: Engineer
+tags: [privacy, nlp, data-pipelines, python]
+placeholder: true
+---
+
+## Problem
+
+Placeholder copy. Free-text records contained names, addresses and identifiers that had to be
+removed before analysis, and manual redaction did not scale.
+
+## Approach
+
+A hybrid pipeline: rules for structured identifiers, a named-entity model for names and places,
+and consistent pseudonym replacement so records stayed linkable.
+
+## Results
+
+Placeholder numbers: 98% recall on identifiers in an audited sample, with the pipeline running
+nightly.
+
+## Learnings
+
+Recall is the only metric that matters for privacy. Precision errors are an annoyance; recall
+errors are incidents.

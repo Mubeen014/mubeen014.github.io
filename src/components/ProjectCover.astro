@@ -1,0 +1,45 @@
+---
+/**
+ * Project cover: the entry's cover image when it has one, otherwise a deterministic
+ * gradient seeded from its tags. Decorative (the card title carries the meaning).
+ *
+ * Props:
+ * - tags: the project's tags (seed for the gradient).
+ * - image: optional cover image from the content schema.
+ */
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+import { coverGradient } from '../lib/cover-gradient';
+
+interface Props {
+  tags: string[];
+  image: ImageMetadata | undefined;
+}
+
+const { tags, image } = Astro.props;
+---
+
+{image ? (
+  <Image
+    class="cover"
+    src={image}
+    alt=""
+    widths={[400, 800]}
+    sizes="(min-width: 48rem) 33vw, 100vw"
+  />
+) : (
+  <div
+    class="cover"
+    style={`background: ${coverGradient(tags)}`}
+    aria-hidden="true"
+  />
+)}
+
+<style>
+  .cover {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+</style>

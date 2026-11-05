@@ -1,0 +1,33 @@
+---
+/** Experience index: vertical timeline of roles, newest first. */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Timeline from '../../components/Timeline.astro';
+import { getEntriesOfKind } from '../../lib/entries';
+
+const roles = await getEntriesOfKind('experience');
+---
+
+<BaseLayout title="Experience" description="Roles I have held, newest first.">
+  <div class="container page">
+    <header class="page-header">
+      <h1>Experience</h1>
+      <p class="intro">Roles I have held, newest first.</p>
+    </header>
+    <Timeline entries={roles} headingLevel={2} />
+  </div>
+</BaseLayout>
+
+<style>
+  .page {
+    padding-block: var(--space-7) 0;
+  }
+  .page-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-7);
+  }
+  .intro {
+    color: var(--text-muted);
+  }
+</style>

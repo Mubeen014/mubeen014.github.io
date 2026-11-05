@@ -77,6 +77,11 @@ a {
   box-shadow: 0 0 0 8px var(--accent-soft);
 }
 
+/* Anchor targets land below the fixed nav. */
+[id] {
+  scroll-margin-top: calc(var(--nav-height) + var(--space-4));
+}
+
 .container {
   width: 100%;
   max-width: var(--container);

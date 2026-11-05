@@ -1,0 +1,50 @@
+---
+/** Project case study page, one per entry in the projects collection. */
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import DetailLayout from '../../layouts/DetailLayout.astro';
+import { getAdjacentEntries } from '../../lib/entries';
+import { formatDateRange } from '../../lib/dates';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects');
+  return projects.map((project) => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+}
+
+const { project } = Astro.props;
+const { data } = project;
+const { Content } = await render(project);
+const { previous, next } = await getAdjacentEntries('project', project.id);
+const linkLabels = {
+  repo: 'Repository',
+  demo: 'Demo',
+  paper: 'Paper',
+} as const;
+const links = (Object.keys(linkLabels) as (keyof typeof linkLabels)[]).flatMap(
+  (key) => {
+    const href = data.links[key];
+    return href ? [{ label: linkLabels[key], href }] : [];
+  },
+);
+---
+
+<DetailLayout
+  kind="project"
+  title={data.title}
+  summary={data.summary}
+  dateRange={formatDateRange(data.startDate, data.endDate)}
+  role={data.role}
+  tags={data.tags}
+  links={links}
+  placeholder={data.placeholder}
+  previous={previous}
+  next={next}
+>
+  <Content />
+</DetailLayout>

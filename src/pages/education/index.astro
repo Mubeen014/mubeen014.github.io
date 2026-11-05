@@ -1,0 +1,33 @@
+---
+/** Education index: vertical timeline of degrees, newest first. */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Timeline from '../../components/Timeline.astro';
+import { getEntriesOfKind } from '../../lib/entries';
+
+const degrees = await getEntriesOfKind('education');
+---
+
+<BaseLayout title="Education" description="Degrees and study, newest first.">
+  <div class="container page">
+    <header class="page-header">
+      <h1>Education</h1>
+      <p class="intro">Degrees and study, newest first.</p>
+    </header>
+    <Timeline entries={degrees} headingLevel={2} />
+  </div>
+</BaseLayout>
+
+<style>
+  .page {
+    padding-block: var(--space-7) 0;
+  }
+  .page-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-7);
+  }
+  .intro {
+    color: var(--text-muted);
+  }
+</style>

@@ -1,0 +1,82 @@
+---
+/**
+ * Vertical timeline of entries (newest first as given): a line with one marker per entry and
+ * the entry's card beside it.
+ *
+ * Props:
+ * - entries: entries to show, already sorted.
+ * - headingLevel: heading level for card titles (fits the page outline). Default 3.
+ */
+import Card from './Card.astro';
+import { formatDateRange } from '../lib/dates';
+import type { Entry } from '../lib/entries';
+
+interface Props {
+  entries: Entry[];
+  headingLevel?: 2 | 3;
+}
+
+const { entries, headingLevel = 3 } = Astro.props;
+---
+
+<ol class="timeline">
+  {entries.map((entry) => (
+    <li class:list={['item', entry.kind]}>
+      <Card
+        title={entry.title}
+        summary={entry.summary}
+        href={entry.href}
+        kind={entry.kind}
+        dateRange={formatDateRange(entry.startDate, entry.endDate)}
+        tags={entry.tags}
+        placeholder={entry.placeholder}
+        headingLevel={headingLevel}
+      />
+    </li>
+  ))}
+</ol>
+
+<style>
+  .timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0 0 0 var(--space-6);
+    list-style: none;
+    max-width: 48rem;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: var(--space-2);
+    bottom: var(--space-2);
+    left: 5px;
+    width: 1px;
+    background: var(--navy-line);
+  }
+  .item {
+    position: relative;
+  }
+  .item::before {
+    content: '';
+    position: absolute;
+    top: var(--space-6);
+    left: calc(-1 * var(--space-6));
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    background: var(--text-muted);
+  }
+  .project::before {
+    background: var(--point-project);
+  }
+  .experience::before {
+    background: var(--point-experience);
+  }
+  .education::before {
+    background: var(--point-education);
+  }
+</style>

@@ -1,0 +1,18 @@
+---
+/**
+ * "placeholder" badge for entries still marked `placeholder: true`. Renders only in dev
+ * builds; production output never contains it.
+ */
+---
+
+{import.meta.env.DEV && <span class="badge mono">placeholder</span>}
+
+<style>
+  .badge {
+    display: inline-block;
+    padding: 0 var(--space-2);
+    border: 1px dashed var(--text-muted);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+  }
+</style>

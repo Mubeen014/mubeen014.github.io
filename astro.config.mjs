@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import mdx from '@astrojs/mdx';
 
 // User site (mubeen014.github.io): served from the domain root, so no `base`.
 // `trailingSlash: 'always'` pairs with the default `build.format: 'directory'`
@@ -7,4 +8,5 @@ export default defineConfig({
   site: 'https://mubeen014.github.io',
   output: 'static',
   trailingSlash: 'always',
+  integrations: [mdx()],
 });

@@ -10,18 +10,26 @@
  * - dateRange: display string such as "2023 – present".
  * - tags: tag labels.
  * - coords: optional mono readout shown on hover/focus, e.g. "z = [0.42, -1.17, 0.88]".
+ * - placeholder: show the dev-only placeholder badge. Default false.
+ * - headingLevel: 2 or 3 so the card title fits the page outline. Default 3.
+ * Slots:
+ * - cover: optional media shown edge to edge at the top of the card.
  * - class: extra classes on the root element.
  */
 import TagChip from './TagChip.astro';
+import PlaceholderBadge from './PlaceholderBadge.astro';
+import type { EntryKind } from '../lib/entries';
 
 interface Props {
   title: string;
   summary: string;
   href: string;
-  kind: 'project' | 'experience' | 'education';
+  kind: EntryKind;
   dateRange: string;
   tags: string[];
   coords?: string;
+  placeholder?: boolean;
+  headingLevel?: 2 | 3;
   class?: string;
 }
 
@@ -33,18 +41,27 @@ const {
   dateRange,
   tags,
   coords,
+  placeholder = false,
+  headingLevel = 3,
   class: className,
 } = Astro.props;
+const Heading = headingLevel === 2 ? 'h2' : 'h3';
 ---
 
 <article class:list={['card', kind, className]}>
+  {Astro.slots.has('cover') && (
+    <div class="cover">
+      <slot name="cover" />
+    </div>
+  )}
   <p class="meta mono">
     <span class="kind">{kind}</span>
     <span>{dateRange}</span>
+    {placeholder && <PlaceholderBadge />}
   </p>
-  <h3 class="title">
+  <Heading class="title">
     <a href={href}>{title}</a>
-  </h3>
+  </Heading>
   <p class="summary">{summary}</p>
   <ul class="tags" aria-label="Tags">
     {tags.map((tag) => (
@@ -72,8 +89,17 @@ const {
       border-color var(--dur-color) var(--ease-out);
   }
 
+  .cover {
+    aspect-ratio: 16 / 7;
+    margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) 0;
+    border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
+    border-bottom: 1px solid var(--navy-line);
+    overflow: hidden;
+  }
+
   .meta {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     gap: var(--space-3);
   }
@@ -96,6 +122,10 @@ const {
     background: var(--point-education);
   }
 
+  .title {
+    font-size: var(--fs-h3);
+    line-height: 1.25;
+  }
   .title a {
     color: var(--text);
     text-decoration: none;

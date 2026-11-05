@@ -1,0 +1,155 @@
+---
+/**
+ * Projects index: tag chips that filter the card grid (any selected tag matches).
+ * The static 2D scatter above the list arrives with the embedding in Phase 4.
+ */
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Card from '../../components/Card.astro';
+import TagChip from '../../components/TagChip.astro';
+import ProjectCover from '../../components/ProjectCover.astro';
+import { getEntriesOfKind } from '../../lib/entries';
+import { formatDateRange } from '../../lib/dates';
+
+const projects = await getEntriesOfKind('project');
+const coversById = new Map(
+  (await getCollection('projects')).map((project) => [
+    project.id,
+    project.data.cover,
+  ]),
+);
+const allTags = [
+  ...new Set(projects.flatMap((project) => project.tags)),
+].sort();
+---
+
+<BaseLayout
+  title="Projects"
+  description="Projects, case studies and experiments."
+>
+  <div class="container page">
+    <header class="page-header">
+      <h1>Projects</h1>
+      <p class="intro">Case studies and experiments, newest first.</p>
+    </header>
+
+    <div class="filter">
+      <p class="mono" id="filter-label">
+        filter by tag
+      </p>
+      <ul class="chips" aria-labelledby="filter-label" data-tag-filter>
+        {allTags.map((tag) => (
+          <li data-tag={tag}>
+            <TagChip label={tag} interactive />
+          </li>
+        ))}
+      </ul>
+      <p class="mono status" aria-live="polite" data-filter-status>
+        showing {projects.length} of {projects.length}
+      </p>
+    </div>
+
+    <ul class="grid" data-project-list>
+      {projects.map((project) => (
+        <li data-tags={project.tags.join(' ')}>
+          <Card
+            title={project.title}
+            summary={project.summary}
+            href={project.href}
+            kind="project"
+            dateRange={formatDateRange(project.startDate, project.endDate)}
+            tags={project.tags}
+            placeholder={project.placeholder}
+            headingLevel={2}
+          >
+            <ProjectCover
+              slot="cover"
+              tags={project.tags}
+              image={coversById.get(project.id)}
+            />
+          </Card>
+        </li>
+      ))}
+    </ul>
+  </div>
+</BaseLayout>
+
+<script>
+  /** Tag filter: toggling chips shows projects that have any selected tag. */
+  const filterList = document.querySelector<HTMLElement>('[data-tag-filter]');
+  const projectList = document.querySelector<HTMLElement>(
+    '[data-project-list]',
+  );
+  const status = document.querySelector<HTMLElement>('[data-filter-status]');
+  if (!filterList || !projectList || !status) {
+    throw new Error('Project filter: filter, list or status element not found');
+  }
+  const projectItems = [
+    ...projectList.querySelectorAll<HTMLElement>('li[data-tags]'),
+  ];
+  const selectedTags = new Set<string>();
+
+  const applyFilter = () => {
+    let visibleCount = 0;
+    for (const item of projectItems) {
+      const tags = (item.dataset['tags'] ?? '').split(' ');
+      const visible =
+        selectedTags.size === 0 || tags.some((tag) => selectedTags.has(tag));
+      item.hidden = !visible;
+      visibleCount += visible ? 1 : 0;
+    }
+    status.textContent = `showing ${visibleCount} of ${projectItems.length}`;
+  };
+
+  filterList.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const button = event.target.closest('button');
+    const tag = button?.closest<HTMLElement>('li[data-tag]')?.dataset['tag'];
+    if (!button || !tag) return;
+    const selected = !selectedTags.has(tag);
+    if (selected) selectedTags.add(tag);
+    else selectedTags.delete(tag);
+    button.setAttribute('aria-pressed', String(selected));
+    applyFilter();
+  });
+</script>
+
+<style>
+  .page {
+    padding-block: var(--space-7) 0;
+  }
+  .page-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+  }
+  .intro {
+    color: var(--text-muted);
+  }
+  .filter {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .grid li[hidden] {
+    display: none;
+  }
+</style>
