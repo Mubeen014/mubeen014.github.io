@@ -70,9 +70,8 @@ a {
   color: var(--text);
 }
 
-/* Visible orange focus ring. `.is-focus-visible` only exists so /styleguide/ can show the state. */
-:focus-visible,
-.is-focus-visible {
+/* Visible orange focus ring. */
+:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
   box-shadow: 0 0 0 8px var(--accent-soft);

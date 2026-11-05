@@ -17,7 +17,7 @@ Personal website: Astro + TypeScript + Three.js + GSAP, deployed to GitHub Pages
 - One correct code path: no fallbacks or alternative implementations (reduced-motion handling is the only branch).
 - Fail fast with clear errors when preconditions aren't met.
 - Rely on TypeScript strict types instead of runtime checks.
-- DOM animations use only transform and opacity.
+- DOM animations: transform and opacity, plus colour transitions (color, background-color, border-color; ~150ms ease-out). Never animate layout properties (width, height, top/left, margin, padding).
 - All internal links and asset paths go through one base-URL helper (import.meta.env.BASE_URL).
 
 ## Changes

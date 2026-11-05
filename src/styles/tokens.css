@@ -8,6 +8,11 @@
   --text-muted: #8c97b3;
   --accent: #f28c28;
   --accent-soft: rgba(242, 140, 40, 0.15);
+  --accent-hover: color-mix(
+    in srgb,
+    var(--accent) 84%,
+    var(--text)
+  ); /* primary button hover */
   --point-project: #f28c28;
   --point-experience: #5b8def;
   --point-education: #c9d3ea;
@@ -42,17 +47,19 @@
   --gutter: clamp(1rem, 3vw, 2rem); /* 16px minimum */
   --container: 72rem;
   --prose-width: 68ch;
-  --nav-height: 5.75rem; /* two rows on narrow screens, see Nav.astro */
+  --nav-height: 3.5rem; /* one row; see Nav.astro */
 
   /* Shape + motion */
   --radius: 8px;
   --radius-sm: 4px;
   --dur-fast: 200ms;
   --dur-base: 400ms;
+  --dur-color: 150ms; /* colour transitions */
   --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1); /* power3.out */
 }
 
-@media (min-width: 40rem) {
+/* Keep in sync with the breakpoint in Nav.astro. */
+@media (min-width: 48rem) {
   :root {
     --nav-height: 4rem;
   }

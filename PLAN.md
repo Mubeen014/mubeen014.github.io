@@ -94,7 +94,7 @@ Each item lists its prefers-reduced-motion behaviour.
 - Card hover/focus: 1px orange border, slight lift, mono coords fade in (CSS). Reduced: border only.
 - Magnetic CTAs (hero + contact), pointer devices only. Reduced: off.
 - Timeline line draws on scroll on /experience and /education. Reduced: fully drawn.
-Rules: transform/opacity only in the DOM; 200–800ms; power3.out or equivalent, nothing bounces; no custom cursor.
+Rules: DOM motion uses transform/opacity; colour transitions (color, background-color, border-color) are allowed at ~150ms ease-out; never animate layout properties (width, height, top/left, margin, padding); motion 200–800ms; power3.out or equivalent, nothing bounces; no custom cursor.
 
 ## 6. Tech stack
 - Astro, static output; TypeScript strict.

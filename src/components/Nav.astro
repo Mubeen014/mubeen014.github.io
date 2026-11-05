@@ -1,8 +1,10 @@
 ---
 /**
- * Fixed site header: brand on the left; section links and a (not yet functional) ⌘K hint on the
- * right. Transparent at the top of the page; gains a blurred --bg-raised layer once scrolled.
- * On narrow screens the links wrap to a second row.
+ * Fixed site header, always one row.
+ * - Wide screens: brand (monogram + name), section links, and a (not yet functional) ⌘K hint.
+ * - Narrow screens: monogram + a "Menu" disclosure button that toggles a dropdown with the links.
+ * Transparent at the top of the page; gains a blurred --bg-raised layer once scrolled or
+ * while the menu is open.
  */
 import { siteConfig } from '../lib/site';
 import { url } from '../lib/paths';
@@ -22,9 +24,18 @@ const currentPath = Astro.url.pathname;
       <span class="monogram mono" aria-hidden="true">
         {siteConfig.monogram}
       </span>
-      <span>{siteConfig.name}</span>
+      <span class="brand-name">{siteConfig.name}</span>
     </a>
-    <nav class="links" aria-label="Primary">
+    <button
+      class="menu-button"
+      type="button"
+      aria-expanded="false"
+      aria-controls="nav-links"
+      data-menu-button
+    >
+      Menu
+    </button>
+    <nav class="links" id="nav-links" aria-label="Primary" data-menu-panel>
       <ul>
         {links.map(({ label, path }) => (
           <li>
@@ -44,22 +55,66 @@ const currentPath = Astro.url.pathname;
       aria-disabled="true"
       title="Command palette — coming soon"
     >
-      <span class="hint-label">Search</span>
+      <span>Search</span>
       <kbd>⌘K</kbd>
     </button>
   </div>
 </header>
 
 <script>
-  /** Marks the header as scrolled once the page has moved off the top. */
+  /** Scrolled-state backdrop and the narrow-screen menu disclosure for the site header. */
   const nav = document.querySelector<HTMLElement>('[data-nav]');
-  if (!nav) {
-    throw new Error('Nav script: [data-nav] element not found');
+  const menuButton =
+    nav?.querySelector<HTMLButtonElement>('[data-menu-button]');
+  const menuPanel = nav?.querySelector<HTMLElement>('[data-menu-panel]');
+  const firstMenuLink = menuPanel?.querySelector<HTMLAnchorElement>('a');
+  if (!nav || !menuButton || !menuPanel || !firstMenuLink) {
+    throw new Error(
+      'Nav script: header, menu button, panel or links not found',
+    );
   }
+
   const updateScrolledState = () =>
     nav.toggleAttribute('data-scrolled', window.scrollY > 8);
   updateScrolledState();
   window.addEventListener('scroll', updateScrolledState, { passive: true });
+
+  const isMenuOpen = () => menuButton.getAttribute('aria-expanded') === 'true';
+  const setMenuOpen = (open: boolean) => {
+    menuButton.setAttribute('aria-expanded', String(open));
+    nav.toggleAttribute('data-menu-open', open);
+  };
+
+  menuButton.addEventListener('click', () => {
+    const open = !isMenuOpen();
+    setMenuOpen(open);
+    if (open) {
+      firstMenuLink.focus();
+    }
+  });
+
+  nav.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && isMenuOpen()) {
+      setMenuOpen(false);
+      menuButton.focus();
+    }
+  });
+
+  // Close after choosing a link (matters for same-page links like /#contact) or tapping outside.
+  menuPanel.addEventListener('click', (event) => {
+    if (event.target instanceof HTMLAnchorElement) {
+      setMenuOpen(false);
+    }
+  });
+  document.addEventListener('click', (event) => {
+    if (
+      isMenuOpen() &&
+      event.target instanceof Node &&
+      !nav.contains(event.target)
+    ) {
+      setMenuOpen(false);
+    }
+  });
 </script>
 
 <style>
@@ -70,7 +125,7 @@ const currentPath = Astro.url.pathname;
     isolation: isolate;
   }
 
-  /* Scrolled backdrop: faded in with opacity (never by animating background). */
+  /* Backdrop layer fades in with opacity; backdrop-filter can't be colour-transitioned. */
   .nav::before {
     content: '';
     position: absolute;
@@ -82,23 +137,19 @@ const currentPath = Astro.url.pathname;
     opacity: 0;
     transition: opacity var(--dur-base) var(--ease-out);
   }
-  .nav[data-scrolled]::before {
+  .nav:is([data-scrolled], [data-menu-open])::before {
     opacity: 1;
   }
 
   .inner {
-    display: grid;
-    grid-template-areas:
-      'brand hint'
-      'links links';
-    grid-template-columns: 1fr auto;
+    display: flex;
     align-items: center;
-    column-gap: var(--space-4);
-    min-height: var(--nav-height);
+    justify-content: space-between;
+    gap: var(--space-4);
+    height: var(--nav-height);
   }
 
   .brand {
-    grid-area: brand;
     display: inline-flex;
     align-items: center;
     gap: var(--space-3);
@@ -116,24 +167,53 @@ const currentPath = Astro.url.pathname;
     border-radius: var(--radius-sm);
     color: var(--text);
   }
+  .brand-name {
+    display: none;
+  }
 
+  .menu-button {
+    min-height: 2.75rem;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--text-muted);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text);
+    font: 500 var(--fs-small) / 1 var(--font-sans);
+    cursor: pointer;
+    transition: border-color var(--dur-color) var(--ease-out);
+  }
+  .menu-button:hover {
+    border-color: var(--accent);
+  }
+
+  /* Narrow screens: links live in a dropdown panel under the bar. */
   .links {
-    grid-area: links;
+    display: none;
+    position: absolute;
+    top: 100%;
+    inset-inline: 0;
+    background: var(--bg-raised);
+    border-bottom: 1px solid var(--navy-line);
+  }
+  .nav[data-menu-open] .links {
+    display: block;
   }
   .links ul {
     display: flex;
-    gap: var(--space-4);
-    margin: 0;
-    padding: 0;
+    flex-direction: column;
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: var(--space-2) var(--gutter) var(--space-4);
     list-style: none;
   }
   .links a {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     min-height: 2.75rem;
     color: var(--text);
     font-size: var(--fs-small);
     text-decoration: none;
+    transition: color var(--dur-color) var(--ease-out);
   }
   .links a:hover {
     color: var(--accent);
@@ -147,8 +227,7 @@ const currentPath = Astro.url.pathname;
 
   /* Placeholder: looks like a button, does nothing yet, so no hover affordance. */
   .hint {
-    grid-area: hint;
-    display: inline-flex;
+    display: none;
     align-items: center;
     gap: var(--space-2);
     min-height: 2.75rem;
@@ -162,18 +241,35 @@ const currentPath = Astro.url.pathname;
     font: inherit;
     color: var(--text);
   }
-  .hint-label {
-    display: none;
-  }
 
-  @media (min-width: 40rem) {
+  /* Keep in sync with the --nav-height breakpoint in tokens.css. */
+  @media (min-width: 48rem) {
     .inner {
-      grid-template-areas: 'brand links hint';
-      grid-template-columns: 1fr auto auto;
-      column-gap: var(--space-6);
+      gap: var(--space-6);
     }
-    .hint-label {
+    .brand {
+      margin-right: auto;
+    }
+    .brand-name {
       display: inline;
+    }
+    .menu-button {
+      display: none;
+    }
+    .links,
+    .nav[data-menu-open] .links {
+      display: block;
+      position: static;
+      background: none;
+      border: 0;
+    }
+    .links ul {
+      flex-direction: row;
+      gap: var(--space-4);
+      padding: 0;
+    }
+    .hint {
+      display: inline-flex;
     }
   }
 </style>

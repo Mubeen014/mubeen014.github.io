@@ -364,4 +364,34 @@ const cardExamples = [
     padding: var(--space-2);
     list-style: none;
   }
+
+  /*
+   * Forced states for review. These mirror the components' own :hover / :focus-visible rules
+   * and live here so the helper classes never ship on other pages.
+   */
+  .guide :global(.is-focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 8px var(--accent-soft);
+  }
+  .guide :global(.btn.primary.is-hover) {
+    background: var(--accent-hover);
+  }
+  .guide :global(.btn.secondary.is-hover),
+  .guide :global(.chip.interactive.is-hover),
+  .guide :global(.card:is(.is-hover, .is-focus-visible)) {
+    border-color: var(--accent);
+  }
+  .guide :global(.card.is-hover) {
+    transform: translateY(-2px);
+  }
+  .guide :global(.card:is(.is-hover, .is-focus-visible) .coords) {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .guide :global(.card.is-hover) {
+      transform: none;
+    }
+  }
 </style>

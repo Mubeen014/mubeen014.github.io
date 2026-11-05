@@ -7,7 +7,7 @@
  * - label: tag text.
  * - interactive: render as a <button> toggle. Default false.
  * - selected: pressed state, only meaningful when interactive. Default false.
- * - class: extra classes; `is-hover` / `is-focus-visible` force a state for /styleguide/.
+ * - class: extra classes on the root element.
  */
 interface Props {
   label: string;
@@ -35,7 +35,6 @@ const Element = interactive ? 'button' : 'span';
 
 <style>
   .chip {
-    position: relative;
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
@@ -55,21 +54,10 @@ const Element = interactive ? 'button' : 'span';
     border-color: var(--text-muted);
     color: var(--text);
     cursor: pointer;
+    transition: border-color var(--dur-color) var(--ease-out);
   }
-
-  /* Orange edge fades in via opacity, like Button and Card. */
-  .interactive::after {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border: 1px solid var(--accent);
-    border-radius: inherit;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--dur-fast) var(--ease-out);
-  }
-  .interactive:is(:hover, .is-hover)::after {
-    opacity: 1;
+  .interactive:hover {
+    border-color: var(--accent);
   }
 
   /* Selected is marked by a square dot as well as colour, so it never relies on colour alone. */
