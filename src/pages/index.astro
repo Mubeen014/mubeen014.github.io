@@ -24,7 +24,8 @@ const featuredProjects = entries.filter(
 );
 const career = entries.filter((entry) => entry.kind !== 'project');
 const covers = await getProjectCovers();
-const latentSpaceJson = serialiseLatentSpaceData(toLatentSpaceData(entries));
+const latentSpace = toLatentSpaceData(entries);
+const latentSpaceJson = serialiseLatentSpaceData(latentSpace);
 
 const facts = [
   { label: 'based in', value: '[TODO] City' },
@@ -53,9 +54,26 @@ const facts = [
         </Button>
       </div>
       <p class="hero-hint mono" aria-hidden="true">
-        drag to orbit
+        drag to orbit · <span class="hint-pointer">click</span>
+        <span class="hint-touch">tap</span> a point to open
       </p>
     </div>
+    <ul
+      class="point-links"
+      aria-label="Entries in the latent space"
+      data-point-links
+    >
+      {latentSpace.points.map((point) => (
+        <li>
+          <a href={point.href} data-key={point.key}>
+            {point.title}
+            <span class="mono">
+              {point.kind} · {point.year}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
   </section>
 
   <section class="container section" id="about" aria-labelledby="about-heading">
@@ -164,9 +182,12 @@ const facts = [
   } from '../lib/latent-space-data';
 
   const container = document.querySelector<HTMLElement>('[data-latent-space]');
+  const linkList = document.querySelector<HTMLElement>('[data-point-links]');
   const json = document.getElementById(LATENT_SPACE_DATA_ID)?.textContent;
-  if (!container || !json) {
-    throw new Error('Home: latent space container or data not found');
+  if (!container || !linkList || !json) {
+    throw new Error(
+      'Home: latent space container, link list or data not found',
+    );
   }
   const data = parseLatentSpaceData(json);
 
@@ -174,7 +195,7 @@ const facts = [
     requestAnimationFrame(async () => {
       const { mountLatentSpace } =
         await import('../scripts/latent-space/scene');
-      mountLatentSpace(container, data);
+      mountLatentSpace(container, data, linkList);
     });
   if (document.readyState === 'complete') {
     start();
@@ -249,6 +270,81 @@ const facts = [
   }
   .hero:has([data-ready]) .hero-hint {
     opacity: 1;
+  }
+  .hint-touch {
+    display: none;
+  }
+  @media not ((hover: hover) and (pointer: fine)) {
+    .hint-pointer {
+      display: none;
+    }
+    .hint-touch {
+      display: inline;
+    }
+  }
+
+  /* Label card for the highlighted point (created by labels.ts). */
+  .hero-space :global(.latent-label) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    max-width: 16rem;
+    padding: var(--space-3) var(--space-4);
+    background: color-mix(in srgb, var(--bg-raised) 92%, transparent);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    color: var(--text);
+    text-decoration: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+  .hero-space :global(.latent-label[data-visible]) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .hero-space :global(.latent-label-title) {
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  /*
+   * Keyboard path: links mirroring every point. Visually hidden until focused; the focused
+   * link appears as a chip at the top of the hero while its point is highlighted.
+   */
+  .point-links {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .point-links a:not(:focus-visible) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .point-links a:focus-visible {
+    position: absolute;
+    top: calc(var(--nav-height) + var(--space-4));
+    left: max(
+      var(--gutter),
+      calc((100% - var(--container)) / 2 + var(--gutter))
+    );
+    z-index: 2;
+    display: flex;
+    gap: var(--space-3);
+    align-items: baseline;
+    padding: var(--space-2) var(--space-4);
+    background: var(--bg-raised);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    color: var(--text);
+    text-decoration: none;
   }
 
   .section {

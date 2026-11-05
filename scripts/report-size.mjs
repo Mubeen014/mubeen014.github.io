@@ -1,7 +1,7 @@
 /**
  * Reports the gzipped JavaScript each built page loads (inline module scripts, external
  * scripts and everything they import, statically or lazily), split into Three.js and app
- * code, and checks the budgets from PLAN.md section 8. Run after `npm run build`.
+ * code (Three.js and GSAP listed separately), and checks the budgets from PLAN.md section 8. Run after `npm run build`.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -85,22 +85,27 @@ for (const page of listPages(DIST).sort()) {
   const chunks = chunksForPage(html);
   const inline = inlineScripts(html);
   const sizeOf = (chunk) => gzipKb(readFileSync(join(ASSETS, chunk)));
-  const three = chunks
-    .filter((chunk) => chunk.startsWith('three.'))
-    .reduce((sum, chunk) => sum + sizeOf(chunk), 0);
+  const vendorKb = (prefix) =>
+    chunks
+      .filter((chunk) => chunk.startsWith(prefix))
+      .reduce((sum, chunk) => sum + sizeOf(chunk), 0);
+  const three = vendorKb('three.');
+  const gsap = vendorKb('gsap.');
   const app =
     (inline === '' ? 0 : gzipKb(Buffer.from(inline))) +
     chunks
-      .filter((chunk) => !chunk.startsWith('three.'))
+      .filter(
+        (chunk) => !chunk.startsWith('three.') && !chunk.startsWith('gsap.'),
+      )
       .reduce((sum, chunk) => sum + sizeOf(chunk), 0);
-  const total = three + app;
+  const total = three + gsap + app;
   const isHome = page === join(DIST, 'index.html');
   const budget = isHome ? BUDGET_KB.home : BUDGET_KB.other;
   const over = total > budget;
   failed ||= over;
   console.log(
     `${over ? 'OVER' : 'ok  '} /${relative(DIST, page)}: ${total.toFixed(1)} KB gzip ` +
-      `(three ${three.toFixed(1)}, app ${app.toFixed(1)}; budget ${budget}) ${chunks.length ? `[${chunks.join(', ')}]` : ''}`,
+      `(three ${three.toFixed(1)}, gsap ${gsap.toFixed(1)}, app ${app.toFixed(1)}; budget ${budget}) ${chunks.length ? `[${chunks.join(', ')}]` : ''}`,
   );
 }
 process.exit(failed ? 1 : 0);

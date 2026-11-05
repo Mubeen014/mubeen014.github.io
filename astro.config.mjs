@@ -13,10 +13,11 @@ export default defineConfig({
     build: {
       rolldownOptions: {
         output: {
-          // Three.js in its own chunk: cached across deploys and measurable on its own.
+          // Three.js and GSAP in their own chunks: cached across deploys and measurable on their own.
           codeSplitting: {
             groups: [
               { name: 'three', test: /[\\/]node_modules[\\/]three[\\/]/ },
+              { name: 'gsap', test: /[\\/]node_modules[\\/]gsap[\\/]/ },
             ],
           },
         },

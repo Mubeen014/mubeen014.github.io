@@ -2,18 +2,22 @@
  * The home-page latent space: renderer, camera, orbit controls, render loop and lifecycle.
  * Loaded lazily after first paint, so the hero text (the LCP element) never waits for it.
  */
-import { PerspectiveCamera, Scene, WebGLRenderer } from 'three';
+import { PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { LatentSpaceData } from '../../lib/latent-space-data';
 import { createAmbientCloud } from './ambient-cloud';
 import { createContentPoints } from './points';
 import { createGizmo } from './gizmo';
 import { readPalette } from './palette';
+import { createNeighbourLines } from './neighbour-lines';
+import { createPointLabel } from './labels';
+import { createInteraction } from './interaction';
 
 const CAMERA_FOV = 40;
 const CAMERA_DISTANCE = 8;
+const CAMERA_REST_POSITION = new Vector3(0, 1.2, CAMERA_DISTANCE);
 const AUTO_ROTATE_SPEED = 0.6; // full turn ≈ 100 s
-const AUTO_ROTATE_RESUME_MS = 4000;
+const AUTO_ROTATE_RESUME_MS = 4000; // idle time before auto-rotate resumes
 const INITIALISE_MS = 1200;
 const MAX_FRAME_SECONDS = 0.1;
 const AMBIENT_COUNT = { desktop: 2000, compact: 600 };
@@ -66,12 +70,14 @@ function frameCamera(
  *
  * @param container - Element the canvas fills (positioned by CSS).
  * @param data - Parsed scene data.
+ * @param linkList - The hidden list of links mirroring every point (keyboard path).
  * @returns A handle to destroy the scene.
  * @throws Error if WebGL is unavailable (from WebGLRenderer) or a CSS token is missing.
  */
 export function mountLatentSpace(
   container: HTMLElement,
   data: LatentSpaceData,
+  linkList: HTMLElement,
 ): LatentSpaceHandle {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const compact = matchMedia('(max-width: 48rem), (pointer: coarse)').matches;
@@ -89,7 +95,7 @@ export function mountLatentSpace(
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(CAMERA_FOV, 1, 0.1, 100);
-  camera.position.set(0, 1.2, CAMERA_DISTANCE);
+  camera.position.copy(CAMERA_REST_POSITION);
 
   const contentPoints = createContentPoints(data.points, palette, pixelRatio);
   const ambientCloud = createAmbientCloud(
@@ -98,7 +104,14 @@ export function mountLatentSpace(
     pixelRatio,
   );
   const gizmo = createGizmo(palette);
-  scene.add(gizmo.object, ambientCloud.object, contentPoints.object);
+  const lines = createNeighbourLines(palette);
+  scene.add(
+    gizmo.object,
+    ambientCloud.object,
+    lines.object,
+    contentPoints.object,
+  );
+  const label = createPointLabel(container);
 
   const controls = new OrbitControls(camera, canvas);
   controls.enableDamping = true;
@@ -109,23 +122,35 @@ export function mountLatentSpace(
   controls.maxPolarAngle = Math.PI * 0.7;
   controls.autoRotate = !reducedMotion;
   controls.autoRotateSpeed = AUTO_ROTATE_SPEED;
-  // OrbitControls sets touch-action: none; pan-y gives vertical swipes back to page scroll.
+  // OrbitControls sets touch-action: none; pan-y gives vertical swipes back to page scroll,
+  // so only horizontal drags orbit on touch screens.
   canvas.style.touchAction = 'pan-y';
 
-  let resumeTimer: ReturnType<typeof setTimeout> | undefined;
-  const pauseAutoRotate = () => {
-    clearTimeout(resumeTimer);
-    controls.autoRotate = false;
+  const interaction = createInteraction({
+    container,
+    canvas,
+    camera,
+    controls,
+    points: data.points,
+    contentPoints,
+    lines,
+    label,
+    linkList,
+    reducedMotion,
+  });
+
+  // Auto-rotate pauses while dragging or while a point is highlighted, and resumes after
+  // AUTO_ROTATE_RESUME_MS of neither.
+  let autoRotateResumesAt = 0;
+  let wasHighlighted = false;
+  const onControlsStart = () => {
+    autoRotateResumesAt = Infinity;
   };
-  const scheduleAutoRotate = () => {
-    if (reducedMotion) return;
-    clearTimeout(resumeTimer);
-    resumeTimer = setTimeout(() => {
-      controls.autoRotate = true;
-    }, AUTO_ROTATE_RESUME_MS);
+  const onControlsEnd = () => {
+    autoRotateResumesAt = performance.now() + AUTO_ROTATE_RESUME_MS;
   };
-  controls.addEventListener('start', pauseAutoRotate);
-  controls.addEventListener('end', scheduleAutoRotate);
+  controls.addEventListener('start', onControlsStart);
+  controls.addEventListener('end', onControlsEnd);
 
   const resize = () => {
     const { width, height } = container.getBoundingClientRect();
@@ -153,7 +178,22 @@ export function mountLatentSpace(
     if (!reducedMotion) {
       ambientCloud.setTime((now - startTime) / 1000);
     }
-    controls.update(deltaSeconds);
+
+    const highlighted = interaction.hasHighlight();
+    if (wasHighlighted && !highlighted) {
+      autoRotateResumesAt = Math.max(
+        autoRotateResumesAt,
+        now + AUTO_ROTATE_RESUME_MS,
+      );
+    }
+    wasHighlighted = highlighted;
+    controls.autoRotate =
+      !reducedMotion && !highlighted && now >= autoRotateResumesAt;
+
+    if (!interaction.isFlying()) {
+      controls.update(deltaSeconds); // the fly-in tween owns the camera while it runs
+    }
+    interaction.update(deltaSeconds);
     renderer.render(scene, camera);
     container.dataset['ready'] = '';
   };
@@ -175,17 +215,20 @@ export function mountLatentSpace(
 
   const destroy = () => {
     renderer.setAnimationLoop(null);
-    clearTimeout(resumeTimer);
     intersectionObserver.disconnect();
     resizeObserver.disconnect();
     document.removeEventListener('visibilitychange', updateLoop);
     window.removeEventListener('pagehide', onPageHide);
-    controls.removeEventListener('start', pauseAutoRotate);
-    controls.removeEventListener('end', scheduleAutoRotate);
+    window.removeEventListener('pageshow', onPageShow);
+    controls.removeEventListener('start', onControlsStart);
+    controls.removeEventListener('end', onControlsEnd);
+    interaction.dispose();
     controls.dispose();
     contentPoints.dispose();
     ambientCloud.dispose();
     gizmo.dispose();
+    lines.dispose();
+    label.dispose();
     renderer.dispose();
     canvas.remove();
     delete container.dataset['ready'];
@@ -194,7 +237,18 @@ export function mountLatentSpace(
   const onPageHide = (event: PageTransitionEvent) => {
     if (!event.persisted) destroy();
   };
+  // Restored from the back/forward cache (e.g. Back after a fly-in): return to the resting view.
+  const onPageShow = (event: PageTransitionEvent) => {
+    if (!event.persisted) return;
+    interaction.reset();
+    camera.position.copy(CAMERA_REST_POSITION);
+    controls.target.set(0, 0, 0);
+    resize(); // reapplies the aspect-dependent camera distance
+    controls.update();
+    autoRotateResumesAt = 0;
+  };
   window.addEventListener('pagehide', onPageHide);
+  window.addEventListener('pageshow', onPageShow);
 
   return { destroy };
 }
