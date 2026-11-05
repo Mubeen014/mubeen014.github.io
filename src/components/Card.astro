@@ -1,0 +1,164 @@
+---
+/**
+ * Summary card for a project, role or degree. The whole card is one link (the title link is
+ * stretched over it); tags are plain labels.
+ *
+ * Props:
+ * - title, summary: card text.
+ * - href: link target, already passed through `url()`.
+ * - kind: "project" | "experience" | "education"; sets the kind marker colour.
+ * - dateRange: display string such as "2023 – present".
+ * - tags: tag labels.
+ * - coords: optional mono readout shown on hover/focus, e.g. "z = [0.42, -1.17, 0.88]".
+ * - class: extra classes; `is-hover` / `is-focus-visible` force a state for /styleguide/.
+ */
+import TagChip from './TagChip.astro';
+
+interface Props {
+  title: string;
+  summary: string;
+  href: string;
+  kind: 'project' | 'experience' | 'education';
+  dateRange: string;
+  tags: string[];
+  coords?: string;
+  class?: string;
+}
+
+const {
+  title,
+  summary,
+  href,
+  kind,
+  dateRange,
+  tags,
+  coords,
+  class: className,
+} = Astro.props;
+---
+
+<article class:list={['card', kind, className]}>
+  <p class="meta mono">
+    <span class="kind">{kind}</span>
+    <span>{dateRange}</span>
+  </p>
+  <h3 class="title">
+    <a href={href}>{title}</a>
+  </h3>
+  <p class="summary">{summary}</p>
+  <ul class="tags" aria-label="Tags">
+    {tags.map((tag) => (
+      <li>
+        <TagChip label={tag} />
+      </li>
+    ))}
+  </ul>
+  {coords && <p class="coords mono">{coords}</p>}
+</article>
+
+<style>
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    height: 100%;
+    padding: var(--space-5);
+    background: var(--bg-raised);
+    border: 1px solid var(--navy-line);
+    border-radius: var(--radius);
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 1px solid var(--accent);
+    border-radius: inherit;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .kind::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: var(--space-2);
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+  .project .kind::before {
+    background: var(--point-project);
+  }
+  .experience .kind::before {
+    background: var(--point-experience);
+  }
+  .education .kind::before {
+    background: var(--point-education);
+  }
+
+  .title a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  /* Stretches the title link over the whole card. */
+  .title a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .title a:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .summary {
+    color: var(--text-muted);
+    font-size: var(--fs-small);
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .coords {
+    margin-top: auto;
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+
+  .card:is(:hover, .is-hover) {
+    transform: translateY(-2px);
+  }
+  .card:is(:hover, .is-hover, :has(a:focus-visible), .is-focus-visible)::after {
+    opacity: 1;
+  }
+  .card:is(:hover, .is-hover, :has(a:focus-visible), .is-focus-visible)
+    .coords {
+    opacity: 1;
+  }
+  .card:is(:has(a:focus-visible), .is-focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 8px var(--accent-soft);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card:is(:hover, .is-hover) {
+      transform: none;
+    }
+  }
+</style>

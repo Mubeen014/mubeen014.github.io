@@ -1,0 +1,52 @@
+---
+/** Site footer: social links, build credit line and the build date as "last updated". */
+import { siteConfig } from '../lib/site';
+
+const lastUpdated = new Date().toISOString().slice(0, 10);
+const links = [
+  { label: 'GitHub', href: siteConfig.githubUrl },
+  { label: 'LinkedIn', href: siteConfig.linkedinUrl },
+  { label: 'Email', href: `mailto:${siteConfig.email}` },
+];
+---
+
+<footer class="footer">
+  <div class="container inner">
+    <ul class="links">
+      {links.map(({ label, href }) => (
+        <li>
+          <a href={href}>{label}</a>
+        </li>
+      ))}
+    </ul>
+    <p class="mono">built with Astro · deployed on GitHub Pages</p>
+    <p class="mono">last updated {lastUpdated}</p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    margin-top: var(--space-9);
+    padding-block: var(--space-6);
+    border-top: 1px solid var(--navy-line);
+  }
+  .inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-6);
+  }
+  .links {
+    display: flex;
+    gap: var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+</style>

@@ -1,0 +1,87 @@
+---
+/**
+ * Small mono label for a tag. Static by default; `interactive` renders a toggle button
+ * (used for filtering) where `selected` is exposed through aria-pressed and a leading marker.
+ *
+ * Props:
+ * - label: tag text.
+ * - interactive: render as a <button> toggle. Default false.
+ * - selected: pressed state, only meaningful when interactive. Default false.
+ * - class: extra classes; `is-hover` / `is-focus-visible` force a state for /styleguide/.
+ */
+interface Props {
+  label: string;
+  interactive?: boolean;
+  selected?: boolean;
+  class?: string;
+}
+
+const {
+  label,
+  interactive = false,
+  selected = false,
+  class: className,
+} = Astro.props;
+const Element = interactive ? 'button' : 'span';
+---
+
+<Element
+  class:list={['chip', { interactive, selected }, className]}
+  type={interactive ? 'button' : undefined}
+  aria-pressed={interactive ? selected : undefined}
+>
+  {label}
+</Element>
+
+<style>
+  .chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 2rem;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--navy-line);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: var(--fs-mono);
+    letter-spacing: var(--tracking-mono);
+    line-height: 1;
+    color: var(--text-muted);
+  }
+
+  .interactive {
+    border-color: var(--text-muted);
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  /* Orange edge fades in via opacity, like Button and Card. */
+  .interactive::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border: 1px solid var(--accent);
+    border-radius: inherit;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+  .interactive:is(:hover, .is-hover)::after {
+    opacity: 1;
+  }
+
+  /* Selected is marked by a square dot as well as colour, so it never relies on colour alone. */
+  .selected {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .selected::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+  }
+</style>

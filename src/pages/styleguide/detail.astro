@@ -1,0 +1,44 @@
+---
+/** Temporary demo of DetailLayout with sample body copy. Removed in Phase 7. */
+import DetailLayout from '../../layouts/DetailLayout.astro';
+---
+
+<DetailLayout
+  title="Project Alpha"
+  summary="Temporal point process modelling for irregular event streams. [placeholder]"
+  dateRange="2024 – present"
+  role="Lead developer"
+  tags={['point-processes', 'time-series', 'python']}
+  links={[
+    { label: 'Repository', href: 'https://github.com/Mubeen014' },
+    { label: 'Demo', href: 'https://example.com' },
+  ]}
+  coords="z = [0.42, -1.17, 0.88]"
+>
+  <h2>Problem</h2>
+  <p>
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+    tempor incididunt ut labore et dolore magna aliqua, with a{' '}
+    <a href="#problem">link inside body copy</a> and some inline{' '}
+    <code>code</code>.
+  </p>
+  <h2>Approach</h2>
+  <p>
+    Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+    aliquip ex ea commodo consequat.
+  </p>
+  <ul>
+    <li>First consideration, written as a short bullet.</li>
+    <li>Second consideration, written as a short bullet.</li>
+  </ul>
+  <h3>A smaller heading</h3>
+  <p>
+    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore
+    eu fugiat nulla.
+  </p>
+  <h2>Results</h2>
+  <p>
+    Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
+    deserunt mollit.
+  </p>
+</DetailLayout>

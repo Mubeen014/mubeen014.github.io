@@ -1,0 +1,367 @@
+---
+/** Temporary design-system reference page. Removed in Phase 7. */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Button from '../../components/Button.astro';
+import TagChip from '../../components/TagChip.astro';
+import Card from '../../components/Card.astro';
+import { url } from '../../lib/paths';
+
+const colorTokens = [
+  '--bg',
+  '--bg-raised',
+  '--navy-line',
+  '--text',
+  '--text-muted',
+  '--accent',
+  '--accent-soft',
+  '--point-project',
+  '--point-experience',
+  '--point-education',
+];
+
+const typeSteps = [
+  { token: '--fs-hero', label: 'Hero', sample: 'Latent space' },
+  { token: '--fs-h1', label: 'Heading 1', sample: 'Nearest neighbours' },
+  { token: '--fs-h2', label: 'Heading 2', sample: 'Dimensionality reduction' },
+  { token: '--fs-h3', label: 'Heading 3', sample: 'Temporal point processes' },
+  {
+    token: '--fs-body',
+    label: 'Body',
+    sample:
+      'Every project, role and degree is a point; related things sit near each other.',
+  },
+  {
+    token: '--fs-small',
+    label: 'Small',
+    sample: 'Secondary text, card summaries, button labels.',
+  },
+  { token: '--fs-mono', label: 'Mono', sample: 'z = [0.42, -1.17, 0.88]' },
+];
+
+const states = [
+  { label: 'default', className: '' },
+  { label: 'hover', className: 'is-hover' },
+  { label: 'focus-visible', className: 'is-focus-visible' },
+];
+
+const cardExamples = [
+  {
+    kind: 'project' as const,
+    title: 'Project Alpha',
+    summary:
+      'Temporal point process modelling for irregular event streams. [placeholder]',
+    dateRange: '2024 – present',
+    tags: ['point-processes', 'time-series', 'python'],
+    coords: 'z = [0.42, -1.17, 0.88]',
+  },
+  {
+    kind: 'experience' as const,
+    title: 'Company A',
+    summary:
+      'Machine learning engineer building production LLM pipelines. [placeholder]',
+    dateRange: '2022 – 2024',
+    tags: ['llm', 'mlops'],
+    coords: 'z = [-0.31, 0.64, 1.02]',
+  },
+  {
+    kind: 'education' as const,
+    title: 'University A',
+    summary: 'BSc Mechanical Engineering. [placeholder]',
+    dateRange: '2016 – 2020',
+    tags: ['cfd', 'engineering'],
+    coords: 'z = [0.95, 0.12, -0.7]',
+  },
+];
+---
+
+<BaseLayout
+  title="Styleguide"
+  description="Design tokens, type scale and components. Temporary page."
+>
+  <div class="container guide">
+    <header>
+      <p class="mono">temporary · removed in phase 7</p>
+      <h1>Styleguide</h1>
+      <p class="intro">
+        Forced states ("hover", "focus-visible") use helper classes so they can
+        be reviewed on a phone. Every live component below also responds to real
+        hover, tap and keyboard focus. Nav and Footer are the real ones at the
+        top and bottom of this page; scroll to see the nav gain its blurred
+        background.{' '}
+        <a href={url('/styleguide/detail/')}>View the detail layout →</a>
+      </p>
+    </header>
+
+    <section aria-labelledby="colour">
+      <h2 id="colour">Colour tokens</h2>
+      <ul class="swatches">
+        {colorTokens.map((token) => (
+          <li class="swatch">
+            <span class="chip" style={`background: var(${token})`} />
+            <span class="mono name">{token}</span>
+            <span class="mono value" data-token-value={token} />
+          </li>
+        ))}
+      </ul>
+      <div class="panels">
+        <div class="panel on-bg">
+          <p class="mono">on --bg</p>
+          <p>--text body copy sits here.</p>
+          <p class="muted">--text-muted secondary copy.</p>
+          <p>
+            <a href="#colour">--accent link</a>
+          </p>
+        </div>
+        <div class="panel on-raised">
+          <p class="mono">on --bg-raised</p>
+          <p>--text body copy sits here.</p>
+          <p class="muted">--text-muted secondary copy.</p>
+          <p>
+            <a href="#colour">--accent link</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="type">
+      <h2 id="type">Type scale</h2>
+      <p class="intro">
+        Geist for text, Geist Mono for annotations. The measured size updates as
+        the viewport resizes.
+      </p>
+      <ul class="type-scale">
+        {typeSteps.map(({ token, label, sample }) => (
+          <li>
+            <p class="mono">
+              {label} · {token} · <span data-size-of={token} />
+            </p>
+            <p
+              class="sample"
+              style={`font-size: var(${token})`}
+              data-sample={token}
+            >
+              {sample}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section aria-labelledby="buttons">
+      <h2 id="buttons">Button</h2>
+      {(['primary', 'secondary'] as const).map((variant) => (
+        <div class="state-row">
+          <h3 class="mono">{variant}</h3>
+          <ul class="states">
+            {states.map(({ label, className }) => (
+              <li>
+                <span class="mono">{label}</span>
+                <Button variant={variant} href="#buttons" class={className}>
+                  View projects
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+
+    <section aria-labelledby="chips">
+      <h2 id="chips">Tag chip</h2>
+      <div class="state-row">
+        <h3 class="mono">static</h3>
+        <ul class="states">
+          <li>
+            <span class="mono">default</span>
+            <TagChip label="point-processes" />
+          </li>
+        </ul>
+      </div>
+      <div class="state-row">
+        <h3 class="mono">interactive (filter toggle)</h3>
+        <ul class="states">
+          {states.map(({ label, className }) => (
+            <li>
+              <span class="mono">{label}</span>
+              <TagChip label="time-series" interactive class={className} />
+            </li>
+          ))}
+          <li>
+            <span class="mono">selected</span>
+            <TagChip label="time-series" interactive selected />
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="cards">
+      <h2 id="cards">Card</h2>
+      {states.map(({ label, className }) => (
+        <div class="state-row">
+          <h3 class="mono">{label}</h3>
+          <ul class="cards">
+            {cardExamples.map((card) => (
+              <li>
+                <Card {...card} href="#cards" class={className} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  </div>
+</BaseLayout>
+
+<script>
+  /** Fills in live values for tokens and font sizes so this page never drifts from tokens.css. */
+  const rootStyle = getComputedStyle(document.documentElement);
+
+  document
+    .querySelectorAll<HTMLElement>('[data-token-value]')
+    .forEach((element) => {
+      const token = element.dataset['tokenValue'];
+      if (!token) {
+        throw new Error('Styleguide: data-token-value is empty');
+      }
+      element.textContent = rootStyle.getPropertyValue(token).trim();
+    });
+
+  const sizeLabels = document.querySelectorAll<HTMLElement>('[data-size-of]');
+  const updateSizes = () => {
+    sizeLabels.forEach((label) => {
+      const token = label.dataset['sizeOf'];
+      const sample = document.querySelector<HTMLElement>(
+        `[data-sample="${token}"]`,
+      );
+      if (!sample) {
+        throw new Error(`Styleguide: no sample element for ${token}`);
+      }
+      label.textContent = getComputedStyle(sample).fontSize;
+    });
+  };
+  updateSizes();
+  window.addEventListener('resize', updateSizes);
+</script>
+
+<style>
+  .guide {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding-block: var(--space-7) 0;
+  }
+  .guide > header,
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .intro {
+    max-width: var(--prose-width);
+    color: var(--text-muted);
+  }
+
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr));
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .swatch {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .swatch .chip {
+    height: 3.5rem;
+    border: 1px solid var(--text-muted);
+    border-radius: var(--radius);
+  }
+  .swatch .name {
+    color: var(--text);
+  }
+
+  .panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: var(--space-4);
+  }
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-5);
+    border: 1px solid var(--navy-line);
+    border-radius: var(--radius);
+  }
+  .on-bg {
+    background: var(--bg);
+  }
+  .on-raised {
+    background: var(--bg-raised);
+  }
+  .muted {
+    color: var(--text-muted);
+  }
+
+  .type-scale {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sample {
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+  }
+  [data-sample='--fs-body'],
+  [data-sample='--fs-small'],
+  [data-sample='--fs-mono'] {
+    line-height: 1.6;
+    letter-spacing: normal;
+  }
+  [data-sample='--fs-h1'],
+  [data-sample='--fs-h2'],
+  [data-sample='--fs-h3'],
+  [data-sample='--fs-hero'] {
+    font-weight: 600;
+  }
+  [data-sample='--fs-mono'] {
+    font-family: var(--font-mono);
+    letter-spacing: var(--tracking-mono);
+  }
+
+  .state-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .states {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-5) var(--space-6);
+    margin: 0;
+    padding: var(--space-2);
+    list-style: none;
+  }
+  .states li {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    gap: var(--space-5);
+    margin: 0;
+    padding: var(--space-2);
+    list-style: none;
+  }
+</style>

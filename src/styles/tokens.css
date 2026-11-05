@@ -1,0 +1,59 @@
+/* Design tokens. Colours are exactly PLAN.md section 2; everything else is derived. */
+:root {
+  /* Colour */
+  --bg: #070f24;
+  --bg-raised: #0d1a3a;
+  --navy-line: #1e3166;
+  --text: #e8ecf5;
+  --text-muted: #8c97b3;
+  --accent: #f28c28;
+  --accent-soft: rgba(242, 140, 40, 0.15);
+  --point-project: #f28c28;
+  --point-experience: #5b8def;
+  --point-education: #c9d3ea;
+
+  /* Font families (Fontsource names; system fonts cover glyphs Geist lacks, e.g. ⌘) */
+  --font-sans: 'Geist Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:
+    'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Fluid type scale (360px → 1440px viewport) */
+  --fs-hero: clamp(3.5rem, 2.2rem + 6.5vw, 7rem); /* 56 → 112px */
+  --fs-h1: clamp(2.25rem, 1.6rem + 3vw, 3.75rem); /* 36 → 60px */
+  --fs-h2: clamp(1.75rem, 1.4rem + 1.6vw, 2.5rem); /* 28 → 40px */
+  --fs-h3: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem); /* 20 → 26px */
+  --fs-body: clamp(1.0625rem, 1.03rem + 0.15vw, 1.125rem); /* 17 → 18px */
+  --fs-small: 0.9375rem; /* 15px */
+  --fs-mono: clamp(0.75rem, 0.73rem + 0.1vw, 0.8125rem); /* 12 → 13px */
+  --tracking-mono: 0.02em;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --space-9: 7rem;
+
+  /* Layout */
+  --gutter: clamp(1rem, 3vw, 2rem); /* 16px minimum */
+  --container: 72rem;
+  --prose-width: 68ch;
+  --nav-height: 5.75rem; /* two rows on narrow screens, see Nav.astro */
+
+  /* Shape + motion */
+  --radius: 8px;
+  --radius-sm: 4px;
+  --dur-fast: 200ms;
+  --dur-base: 400ms;
+  --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1); /* power3.out */
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --nav-height: 4rem;
+  }
+}

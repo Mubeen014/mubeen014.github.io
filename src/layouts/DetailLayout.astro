@@ -1,0 +1,133 @@
+---
+/**
+ * Layout for a single entry page (project, role or degree): header block, then the body slot.
+ * Nearest-neighbours and prev/next blocks are added in later phases.
+ *
+ * Props:
+ * - title, summary: header text.
+ * - dateRange: display string such as "2023 – present".
+ * - role: optional role / position line shown beside the date range.
+ * - tags: tag labels.
+ * - links: optional external links rendered as secondary buttons.
+ * - coords: optional mono coordinate readout, e.g. "z = [0.42, -1.17, 0.88]".
+ */
+import BaseLayout from './BaseLayout.astro';
+import TagChip from '../components/TagChip.astro';
+import Button from '../components/Button.astro';
+
+interface Props {
+  title: string;
+  summary: string;
+  dateRange: string;
+  role?: string;
+  tags: string[];
+  links?: { label: string; href: string }[];
+  coords?: string;
+}
+
+const {
+  title,
+  summary,
+  dateRange,
+  role,
+  tags,
+  links = [],
+  coords,
+} = Astro.props;
+---
+
+<BaseLayout title={title} description={summary}>
+  <article class="container detail">
+    <header class="header">
+      <p class="meta mono">
+        <span>{dateRange}</span>
+        {role && <span>{role}</span>}
+      </p>
+      <h1>{title}</h1>
+      <p class="summary">{summary}</p>
+      <ul class="tags" aria-label="Tags">
+        {tags.map((tag) => (
+          <li>
+            <TagChip label={tag} />
+          </li>
+        ))}
+      </ul>
+      {links.length > 0 && (
+        <ul class="links" aria-label="Links">
+          {links.map(({ label, href }) => (
+            <li>
+              <Button variant="secondary" href={href}>
+                {label}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {coords && <p class="coords mono">{coords}</p>}
+    </header>
+    <div class="prose">
+      <slot />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .detail {
+    padding-block: var(--space-7) 0;
+  }
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+    max-width: var(--prose-width);
+    margin-bottom: var(--space-7);
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+  }
+  .summary {
+    font-size: var(--fs-h3);
+    line-height: 1.4;
+    color: var(--text-muted);
+  }
+  .tags,
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .prose {
+    max-width: var(--prose-width);
+  }
+  .prose :global(* + *) {
+    margin-top: var(--space-4);
+  }
+  .prose :global(h2) {
+    margin-top: var(--space-7);
+  }
+  .prose :global(h3) {
+    margin-top: var(--space-6);
+  }
+  .prose :global(h2 + *),
+  .prose :global(h3 + *) {
+    margin-top: var(--space-3);
+  }
+  .prose :global(ul),
+  .prose :global(ol) {
+    padding-left: var(--space-5);
+  }
+  .prose :global(code) {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    padding: 0.1em 0.35em;
+    background: var(--bg-raised);
+    border-radius: var(--radius-sm);
+  }
+</style>

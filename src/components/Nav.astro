@@ -1,0 +1,179 @@
+---
+/**
+ * Fixed site header: brand on the left; section links and a (not yet functional) ⌘K hint on the
+ * right. Transparent at the top of the page; gains a blurred --bg-raised layer once scrolled.
+ * On narrow screens the links wrap to a second row.
+ */
+import { siteConfig } from '../lib/site';
+import { url } from '../lib/paths';
+
+const links = [
+  { label: 'Projects', path: '/projects/' },
+  { label: 'Experience', path: '/experience/' },
+  { label: 'Education', path: '/education/' },
+  { label: 'Contact', path: '/#contact' },
+];
+const currentPath = Astro.url.pathname;
+---
+
+<header class="nav" data-nav>
+  <div class="container inner">
+    <a class="brand" href={url('/')} aria-label={`${siteConfig.name} — home`}>
+      <span class="monogram mono" aria-hidden="true">
+        {siteConfig.monogram}
+      </span>
+      <span>{siteConfig.name}</span>
+    </a>
+    <nav class="links" aria-label="Primary">
+      <ul>
+        {links.map(({ label, path }) => (
+          <li>
+            <a
+              href={url(path)}
+              aria-current={currentPath === path ? 'page' : undefined}
+            >
+              {label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <button
+      class="hint mono"
+      type="button"
+      aria-disabled="true"
+      title="Command palette — coming soon"
+    >
+      <span class="hint-label">Search</span>
+      <kbd>⌘K</kbd>
+    </button>
+  </div>
+</header>
+
+<script>
+  /** Marks the header as scrolled once the page has moved off the top. */
+  const nav = document.querySelector<HTMLElement>('[data-nav]');
+  if (!nav) {
+    throw new Error('Nav script: [data-nav] element not found');
+  }
+  const updateScrolledState = () =>
+    nav.toggleAttribute('data-scrolled', window.scrollY > 8);
+  updateScrolledState();
+  window.addEventListener('scroll', updateScrolledState, { passive: true });
+</script>
+
+<style>
+  .nav {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 50;
+    isolation: isolate;
+  }
+
+  /* Scrolled backdrop: faded in with opacity (never by animating background). */
+  .nav::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: color-mix(in srgb, var(--bg-raised) 80%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--navy-line);
+    opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+  .nav[data-scrolled]::before {
+    opacity: 1;
+  }
+
+  .inner {
+    display: grid;
+    grid-template-areas:
+      'brand hint'
+      'links links';
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    column-gap: var(--space-4);
+    min-height: var(--nav-height);
+  }
+
+  .brand {
+    grid-area: brand;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 2.75rem;
+    color: var(--text);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .monogram {
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--text-muted);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+  }
+
+  .links {
+    grid-area: links;
+  }
+  .links ul {
+    display: flex;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    color: var(--text);
+    font-size: var(--fs-small);
+    text-decoration: none;
+  }
+  .links a:hover {
+    color: var(--accent);
+  }
+  .links a[aria-current='page'] {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.35em;
+  }
+
+  /* Placeholder: looks like a button, does nothing yet, so no hover affordance. */
+  .hint {
+    grid-area: hint;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 2.75rem;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--text-muted);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    cursor: default;
+  }
+  .hint kbd {
+    font: inherit;
+    color: var(--text);
+  }
+  .hint-label {
+    display: none;
+  }
+
+  @media (min-width: 40rem) {
+    .inner {
+      grid-template-areas: 'brand links hint';
+      grid-template-columns: 1fr auto auto;
+      column-gap: var(--space-6);
+    }
+    .hint-label {
+      display: inline;
+    }
+  }
+</style>
