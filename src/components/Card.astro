@@ -5,6 +5,7 @@
  *
  * Props:
  * - title, summary: card text.
+ * - subtitle: optional line under the title.
  * - href: link target, already passed through `url()`.
  * - kind: "project" | "experience" | "education"; sets the kind marker colour.
  * - dateRange: display string such as "2023 – present".
@@ -22,6 +23,7 @@ import type { EntryKind } from '../lib/entries';
 
 interface Props {
   title: string;
+  subtitle?: string | undefined;
   summary: string;
   href: string;
   kind: EntryKind;
@@ -35,6 +37,7 @@ interface Props {
 
 const {
   title,
+  subtitle,
   summary,
   href,
   kind,
@@ -62,6 +65,7 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3';
   <Heading class="title">
     <a href={href}>{title}</a>
   </Heading>
+  {subtitle && <p class="subtitle">{subtitle}</p>}
   <p class="summary">{summary}</p>
   <ul class="tags" aria-label="Tags">
     {tags.map((tag) => (
@@ -139,6 +143,12 @@ const Heading = headingLevel === 2 ? 'h2' : 'h3';
   .title a:focus-visible {
     outline: none;
     box-shadow: none;
+  }
+
+  .subtitle {
+    margin-top: calc(-1 * var(--space-2));
+    font-size: var(--fs-small);
+    color: var(--text);
   }
 
   .summary {

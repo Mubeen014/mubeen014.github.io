@@ -2,7 +2,8 @@
 /** Project case study page, one per entry in the projects collection. */
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import DetailLayout from '../../layouts/DetailLayout.astro';
-import { getAdjacentEntries } from '../../lib/entries';
+import ProjectCover from '../../components/ProjectCover.astro';
+import { getAdjacentEntries, getProjectCovers } from '../../lib/entries';
 import { formatDateRange } from '../../lib/dates';
 
 export async function getStaticPaths() {
@@ -21,6 +22,7 @@ const { project } = Astro.props;
 const { data } = project;
 const { Content } = await render(project);
 const { previous, next } = await getAdjacentEntries('project', project.id);
+const cover = (await getProjectCovers()).get(project.id);
 const linkLabels = {
   repo: 'Repository',
   demo: 'Demo',
@@ -39,12 +41,20 @@ const links = (Object.keys(linkLabels) as (keyof typeof linkLabels)[]).flatMap(
   title={data.title}
   summary={data.summary}
   dateRange={formatDateRange(data.startDate, data.endDate)}
-  role={data.role}
+  subtitle={data.role}
   tags={data.tags}
   links={links}
   placeholder={data.placeholder}
   previous={previous}
   next={next}
 >
+  {cover && (
+    <ProjectCover
+      slot="cover"
+      tags={data.tags}
+      cover={cover}
+      variant="detail"
+    />
+  )}
   <Content />
 </DetailLayout>

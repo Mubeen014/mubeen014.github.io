@@ -3,13 +3,12 @@
  * Home: hero (static gradient where the latent-space canvas will mount in Phase 4), about,
  * featured projects, career timeline and contact.
  */
-import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Button from '../components/Button.astro';
 import Card from '../components/Card.astro';
 import ProjectCover from '../components/ProjectCover.astro';
 import Timeline from '../components/Timeline.astro';
-import { getAllEntries } from '../lib/entries';
+import { getAllEntries, getProjectCovers } from '../lib/entries';
 import { formatDateRange } from '../lib/dates';
 import { siteConfig } from '../lib/site';
 import { url } from '../lib/paths';
@@ -19,12 +18,7 @@ const featuredProjects = entries.filter(
   (entry) => entry.kind === 'project' && entry.featured,
 );
 const career = entries.filter((entry) => entry.kind !== 'project');
-const coversById = new Map(
-  (await getCollection('projects')).map((project) => [
-    project.id,
-    project.data.cover,
-  ]),
-);
+const covers = await getProjectCovers();
 
 const facts = [
   { label: 'based in', value: '[TODO] City' },
@@ -97,7 +91,8 @@ const facts = [
             <ProjectCover
               slot="cover"
               tags={project.tags}
-              image={coversById.get(project.id)}
+              cover={covers.get(project.id)}
+              variant="card"
             />
           </Card>
         </li>

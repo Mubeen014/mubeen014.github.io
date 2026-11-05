@@ -7,9 +7,11 @@ import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
+/** Display title; experience entries use `position` instead. */
+const titleField = { title: z.string().min(1) };
+
 /** Fields every entry shares, regardless of collection. */
 const sharedFields = {
-  title: z.string().min(1),
   summary: z.string().min(1).max(140),
   startDate: z.coerce.date(),
   endDate: z.coerce.date().optional(), // absent = present
@@ -31,6 +33,19 @@ function endsOnOrAfterStart(entry: {
 }): boolean {
   return entry.endDate === undefined || entry.endDate >= entry.startDate;
 }
+
+/**
+ * Checks that a cover image always comes with alt text.
+ *
+ * @param project - Parsed project frontmatter.
+ * @returns True when there is no cover, or the cover has alt text.
+ */
+function coverHasAlt(project: {
+  cover?: unknown;
+  coverAlt?: string | undefined;
+}): boolean {
+  return project.cover === undefined || project.coverAlt !== undefined;
+}
 const dateOrderError = {
   message: 'endDate must be on or after startDate',
   path: ['endDate'],
@@ -41,6 +56,7 @@ const projects = defineCollection({
   schema: ({ image }) =>
     z
       .object({
+        ...titleField,
         ...sharedFields,
         role: z.string().min(1),
         links: z
@@ -51,8 +67,13 @@ const projects = defineCollection({
           })
           .default({}),
         cover: image().optional(),
+        coverAlt: z.string().min(1).optional(),
       })
-      .refine(endsOnOrAfterStart, dateOrderError),
+      .refine(endsOnOrAfterStart, dateOrderError)
+      .refine(coverHasAlt, {
+        message: 'coverAlt is required when cover is set',
+        path: ['coverAlt'],
+      }),
 });
 
 const experience = defineCollection({
@@ -78,6 +99,7 @@ const education = defineCollection({
   loader: glob({ base: './src/content/education', pattern: '**/*.mdx' }),
   schema: z
     .object({
+      ...titleField,
       ...sharedFields,
       institution: z.string().min(1),
       degree: z.string().min(1),

@@ -22,10 +22,10 @@ const { previous, next } = await getAdjacentEntries('experience', role.id);
 
 <DetailLayout
   kind="experience"
-  title={data.title}
+  title={data.position}
   summary={data.summary}
   dateRange={formatDateRange(data.startDate, data.endDate)}
-  role={`${data.position} · ${data.location} · ${data.employmentType}`}
+  subtitle={`${data.organisation} · ${data.location} · ${data.employmentType}`}
   tags={data.tags}
   links={[]}
   placeholder={data.placeholder}

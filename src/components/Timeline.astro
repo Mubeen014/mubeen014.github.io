@@ -24,6 +24,7 @@ const { entries, headingLevel = 3 } = Astro.props;
     <li class:list={['item', entry.kind]}>
       <Card
         title={entry.title}
+        subtitle={entry.subtitle}
         summary={entry.summary}
         href={entry.href}
         kind={entry.kind}

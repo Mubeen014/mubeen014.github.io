@@ -1,23 +1,18 @@
 ---
 /**
- * Projects index: tag chips that filter the card grid (any selected tag matches).
- * The static 2D scatter above the list arrives with the embedding in Phase 4.
+ * Projects index: single-select tag filter over the card grid ("All" by default; tapping
+ * the active tag clears it). The static 2D scatter above the list arrives with the
+ * embedding in Phase 4.
  */
-import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Card from '../../components/Card.astro';
 import TagChip from '../../components/TagChip.astro';
 import ProjectCover from '../../components/ProjectCover.astro';
-import { getEntriesOfKind } from '../../lib/entries';
+import { getEntriesOfKind, getProjectCovers } from '../../lib/entries';
 import { formatDateRange } from '../../lib/dates';
 
 const projects = await getEntriesOfKind('project');
-const coversById = new Map(
-  (await getCollection('projects')).map((project) => [
-    project.id,
-    project.data.cover,
-  ]),
-);
+const covers = await getProjectCovers();
 const allTags = [
   ...new Set(projects.flatMap((project) => project.tags)),
 ].sort();
@@ -38,6 +33,9 @@ const allTags = [
         filter by tag
       </p>
       <ul class="chips" aria-labelledby="filter-label" data-tag-filter>
+        <li data-tag="">
+          <TagChip label="All" interactive selected />
+        </li>
         {allTags.map((tag) => (
           <li data-tag={tag}>
             <TagChip label={tag} interactive />
@@ -65,7 +63,8 @@ const allTags = [
             <ProjectCover
               slot="cover"
               tags={project.tags}
-              image={coversById.get(project.id)}
+              cover={covers.get(project.id)}
+              variant="card"
             />
           </Card>
         </li>
@@ -75,7 +74,7 @@ const allTags = [
 </BaseLayout>
 
 <script>
-  /** Tag filter: toggling chips shows projects that have any selected tag. */
+  /** Single-select tag filter. "All" (empty tag) shows everything. */
   const filterList = document.querySelector<HTMLElement>('[data-tag-filter]');
   const projectList = document.querySelector<HTMLElement>(
     '[data-project-list]',
@@ -84,17 +83,25 @@ const allTags = [
   if (!filterList || !projectList || !status) {
     throw new Error('Project filter: filter, list or status element not found');
   }
+  const chipItems = [
+    ...filterList.querySelectorAll<HTMLElement>('li[data-tag]'),
+  ];
   const projectItems = [
     ...projectList.querySelectorAll<HTMLElement>('li[data-tags]'),
   ];
-  const selectedTags = new Set<string>();
+  let activeTag = '';
 
   const applyFilter = () => {
+    for (const chipItem of chipItems) {
+      const pressed = chipItem.dataset['tag'] === activeTag;
+      chipItem
+        .querySelector('button')
+        ?.setAttribute('aria-pressed', String(pressed));
+    }
     let visibleCount = 0;
     for (const item of projectItems) {
       const tags = (item.dataset['tags'] ?? '').split(' ');
-      const visible =
-        selectedTags.size === 0 || tags.some((tag) => selectedTags.has(tag));
+      const visible = activeTag === '' || tags.includes(activeTag);
       item.hidden = !visible;
       visibleCount += visible ? 1 : 0;
     }
@@ -102,14 +109,13 @@ const allTags = [
   };
 
   filterList.addEventListener('click', (event) => {
-    if (!(event.target instanceof Element)) return;
-    const button = event.target.closest('button');
-    const tag = button?.closest<HTMLElement>('li[data-tag]')?.dataset['tag'];
-    if (!button || !tag) return;
-    const selected = !selectedTags.has(tag);
-    if (selected) selectedTags.add(tag);
-    else selectedTags.delete(tag);
-    button.setAttribute('aria-pressed', String(selected));
+    if (!(event.target instanceof Element) || !event.target.closest('button'))
+      return;
+    const tag =
+      event.target.closest<HTMLElement>('li[data-tag]')?.dataset['tag'];
+    if (tag === undefined) return;
+    // Tapping the active tag clears the filter back to "All".
+    activeTag = tag === activeTag ? '' : tag;
     applyFilter();
   });
 </script>

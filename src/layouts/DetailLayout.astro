@@ -7,12 +7,14 @@
  * - kind: entry kind (eyebrow label and back link).
  * - title, summary: header text.
  * - dateRange: display string such as "Mar 2023 – present".
- * - role: role / position line shown beside the date range.
+ * - subtitle: line under the title (project role, organisation details, or degree).
  * - tags: tag labels.
  * - links: external links rendered as secondary buttons (may be empty).
  * - placeholder: show the dev-only placeholder badge.
  * - previous, next: neighbouring entries in index order; undefined at the ends.
  * - coords: optional mono coordinate readout, e.g. "z = [0.42, -1.17, 0.88]".
+ * Slots:
+ * - cover: optional media shown between the header and the body.
  */
 import BaseLayout from './BaseLayout.astro';
 import TagChip from '../components/TagChip.astro';
@@ -29,7 +31,7 @@ interface Props {
   title: string;
   summary: string;
   dateRange: string;
-  role: string;
+  subtitle: string;
   tags: string[];
   links: { label: string; href: string }[];
   placeholder: boolean;
@@ -43,7 +45,7 @@ const {
   title,
   summary,
   dateRange,
-  role,
+  subtitle,
   tags,
   links,
   placeholder,
@@ -67,10 +69,10 @@ const indexLabel = {
       <p class:list={['meta', 'mono', kind]}>
         <span class="kind">{kind}</span>
         <span>{dateRange}</span>
-        <span>{role}</span>
         {placeholder && <PlaceholderBadge />}
       </p>
       <h1>{title}</h1>
+      <p class="subtitle">{subtitle}</p>
       <p class="summary">{summary}</p>
       <ul class="tags" aria-label="Tags">
         {tags.map((tag) => (
@@ -92,19 +94,24 @@ const indexLabel = {
       )}
       {coords && <p class="coords mono">{coords}</p>}
     </header>
+    {Astro.slots.has('cover') && (
+      <div class="cover">
+        <slot name="cover" />
+      </div>
+    )}
     <div class="prose">
       <slot />
     </div>
     <nav class="pager" aria-label={`More ${indexLabel}`}>
       {previous && (
         <a class="pager-link previous" href={previous.href} rel="prev">
-          <span class="mono">← previous</span>
+          <span class="mono">← Newer</span>
           <span class="pager-title">{previous.title}</span>
         </a>
       )}
       {next && (
         <a class="pager-link next" href={next.href} rel="next">
-          <span class="mono">next →</span>
+          <span class="mono">Older →</span>
           <span class="pager-title">{next.title}</span>
         </a>
       )}
@@ -154,6 +161,18 @@ const indexLabel = {
   }
   .education .kind::before {
     background: var(--point-education);
+  }
+  .subtitle {
+    margin-top: calc(-1 * var(--space-2));
+    font-weight: 500;
+  }
+  .cover {
+    aspect-ratio: 16 / 7;
+    max-width: var(--prose-width);
+    margin-bottom: var(--space-7);
+    border: 1px solid var(--navy-line);
+    border-radius: var(--radius);
+    overflow: hidden;
   }
   .summary {
     font-size: var(--fs-h3);

@@ -2,6 +2,7 @@
  * One typed view over all three content collections. Pages, and later the embedding and
  * search index, read entries from here rather than from the collections directly.
  */
+import type { ImageMetadata } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { url } from './paths';
 
@@ -13,12 +14,20 @@ export interface Entry {
   id: string;
   href: string;
   title: string;
+  /** Line shown under the title (experience: organisation · location · employment type). */
+  subtitle: string | undefined;
   summary: string;
   startDate: Date;
   endDate: Date | undefined;
   tags: string[];
   featured: boolean;
   placeholder: boolean;
+}
+
+/** A project's real cover image with its alt text. */
+export interface CoverImage {
+  src: ImageMetadata;
+  alt: string;
 }
 
 /** Link to a neighbouring entry in index order. */
@@ -43,6 +52,31 @@ export function indexPathForKind(kind: EntryKind): string {
   return url(indexPaths[kind]);
 }
 
+type AnyCollectionEntry =
+  | CollectionEntry<'projects'>
+  | CollectionEntry<'experience'>
+  | CollectionEntry<'education'>;
+
+/**
+ * Title and subtitle for an entry. Experience entries are titled by position.
+ *
+ * @param entry - The raw collection entry.
+ * @returns The display title and the line shown under it.
+ */
+function titleLines(entry: AnyCollectionEntry): {
+  title: string;
+  subtitle: string | undefined;
+} {
+  if (entry.collection === 'experience') {
+    const { position, organisation, location, employmentType } = entry.data;
+    return {
+      title: position,
+      subtitle: `${organisation} · ${location} · ${employmentType}`,
+    };
+  }
+  return { title: entry.data.title, subtitle: undefined };
+}
+
 /**
  * Converts a collection entry into the shared `Entry` shape.
  *
@@ -50,20 +84,14 @@ export function indexPathForKind(kind: EntryKind): string {
  * @param entry - The raw collection entry.
  * @returns The normalised entry.
  */
-function toEntry(
-  kind: EntryKind,
-  entry:
-    | CollectionEntry<'projects'>
-    | CollectionEntry<'experience'>
-    | CollectionEntry<'education'>,
-): Entry {
-  const { title, summary, startDate, endDate, tags, featured, placeholder } =
+function toEntry(kind: EntryKind, entry: AnyCollectionEntry): Entry {
+  const { summary, startDate, endDate, tags, featured, placeholder } =
     entry.data;
   return {
     kind,
     id: entry.id,
     href: url(`${indexPaths[kind]}${entry.id}/`),
-    title,
+    ...titleLines(entry),
     summary,
     startDate,
     endDate,
@@ -175,4 +203,23 @@ export async function getAdjacentEntries(
     previous: toLink(entries[index - 1]),
     next: toLink(entries[index + 1]),
   };
+}
+
+/**
+ * Real cover images keyed by project id. Projects without one are absent from the map.
+ *
+ * @returns Map from project id to its cover image and alt text.
+ * @throws Error if a project has a cover without alt text (the schema prevents this).
+ */
+export async function getProjectCovers(): Promise<Map<string, CoverImage>> {
+  const covers = new Map<string, CoverImage>();
+  for (const project of await getCollection('projects')) {
+    const { cover, coverAlt } = project.data;
+    if (cover === undefined) continue;
+    if (coverAlt === undefined) {
+      throw new Error(`Project "${project.id}" has a cover but no coverAlt`);
+    }
+    covers.set(project.id, { src: cover, alt: coverAlt });
+  }
+  return covers;
 }
