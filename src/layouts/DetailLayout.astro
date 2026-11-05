@@ -13,7 +13,7 @@
  * - placeholder: show the dev-only placeholder badge.
  * - previous, next: neighbouring entries in index order; undefined at the ends.
  * - coords: mono coordinate readout, e.g. "z = [0.42, -1.17, 0.88]".
- * - neighbours: nearest entries in the latent space, closest first.
+ * - neighbours: entries sharing tags, most similar first; the block is omitted when empty.
  * Slots:
  * - cover: optional media shown between the header and the body.
  */
@@ -109,7 +109,7 @@ const indexLabel = {
     <div class="prose">
       <slot />
     </div>
-    <NearestNeighbours neighbours={neighbours} />
+    {neighbours.length > 0 && <NearestNeighbours neighbours={neighbours} />}
     <nav class="pager" aria-label={`More ${indexLabel}`}>
       {previous && (
         <a class="pager-link previous" href={previous.href} rel="prev">

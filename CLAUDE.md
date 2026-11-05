@@ -32,3 +32,4 @@ Personal website: Astro + TypeScript + Three.js + GSAP, deployed to GitHub Pages
 - `npm run lint` — ESLint
 - `npm run format` — Prettier (Markdown docs are excluded)
 - `npm test` — Vitest unit tests (`src/**/*.test.ts`)
+- `npm run check:determinism` — two clean builds must produce identical output (also runs in CI)

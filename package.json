@@ -13,7 +13,8 @@
     "check": "astro check",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:determinism": "node scripts/check-determinism.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.1.2",

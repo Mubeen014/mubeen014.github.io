@@ -40,7 +40,7 @@ export interface Entry {
   position1: number;
   /** Mono readout of `position3`, e.g. "z = [0.42, -1.17, 0.88]". */
   coords: string;
-  /** Nearest other entries (by key), closest first. */
+  /** Entries sharing tags (by key), most similar first; may be empty. */
   neighbours: Neighbour[];
 }
 
@@ -50,10 +50,10 @@ type BaseEntry = Omit<
   'position3' | 'position2' | 'position1' | 'coords' | 'neighbours'
 >;
 
-/** A neighbouring entry with its latent-space distance. */
+/** A related entry with its Jaccard tag similarity. */
 export interface NearestNeighbour {
   entry: Entry;
-  distance: number;
+  similarity: number;
 }
 
 /** A project's real cover image with its alt text. */
@@ -295,7 +295,7 @@ export async function getEntry(kind: EntryKind, id: string): Promise<Entry> {
  * Resolves an entry's nearest neighbours to full entries.
  *
  * @param entry - The entry whose neighbours to resolve.
- * @returns Neighbouring entries with distances, closest first.
+ * @returns Neighbouring entries with similarities, most similar first (may be empty).
  * @throws Error if a neighbour key does not match any entry.
  */
 export async function getNearestNeighbours(
@@ -304,13 +304,13 @@ export async function getNearestNeighbours(
   const byKey = new Map(
     (await getAllEntries()).map((candidate) => [candidate.key, candidate]),
   );
-  return entry.neighbours.map(({ key, distance }) => {
+  return entry.neighbours.map(({ key, similarity }) => {
     const neighbour = byKey.get(key);
     if (!neighbour) {
       throw new Error(
         `getNearestNeighbours: unknown neighbour ${key} of ${entry.key}`,
       );
     }
-    return { entry: neighbour, distance };
+    return { entry: neighbour, similarity };
   });
 }

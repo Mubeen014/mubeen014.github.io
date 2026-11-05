@@ -26,7 +26,9 @@ if (points.length === 0) {
   throw new Error('Scatter2D: no points to plot');
 }
 
-// Fit the plotted points' bounds into the box with padding; x right, y up.
+// Fit the plotted points into the box with one scale factor for both axes (so the shape is
+// not stretched), centred; x right, y up. Box coordinates: width BOX_ASPECT, height 1.
+const BOX_ASPECT = 2; // must match the CSS aspect-ratio below
 const PADDING = 0.1;
 const xs = points.map((point) => point.position2[0]);
 const ys = points.map((point) => point.position2[1]);
@@ -36,16 +38,22 @@ const [minX, maxX, minY, maxY] = [
   Math.min(...ys),
   Math.max(...ys),
 ];
-const toPercent = (value: number, min: number, max: number) =>
-  max === min
-    ? 50
-    : (PADDING + ((value - min) / (max - min)) * (1 - 2 * PADDING)) * 100;
+const usable = 1 - 2 * PADDING;
+const scale = Math.min(
+  maxX > minX ? (usable * BOX_ASPECT) / (maxX - minX) : Infinity,
+  maxY > minY ? usable / (maxY - minY) : Infinity,
+);
+const fitScale = Number.isFinite(scale) ? scale : 0; // a single point sits in the centre
+const [centreX, centreY] = [(minX + maxX) / 2, (minY + maxY) / 2];
 const plotted = points.map((point) => {
-  const left = toPercent(point.position2[0], minX, maxX);
+  const left =
+    ((BOX_ASPECT / 2 + (point.position2[0] - centreX) * fitScale) /
+      BOX_ASPECT) *
+    100;
   return {
     ...point,
     left,
-    top: 100 - toPercent(point.position2[1], minY, maxY),
+    top: (0.5 - (point.position2[1] - centreY) * fitScale) * 100,
     labelOnLeft: left > 65,
   };
 });
@@ -87,22 +95,17 @@ const plotted = points.map((point) => {
   }
   .scatter {
     position: relative;
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 2 / 1;
+    max-width: 52rem;
     border: 1px solid var(--navy-line);
     border-radius: var(--radius);
     background-color: var(--bg);
     background-image:
       linear-gradient(var(--navy-line) 1px, transparent 1px),
       linear-gradient(90deg, var(--navy-line) 1px, transparent 1px);
-    background-size: 12.5% 16.667%;
+    background-size: 6.25% 12.5%; /* square cells */
     background-position: -1px -1px;
     overflow: hidden;
-  }
-  @media (min-width: 48rem) {
-    .scatter {
-      aspect-ratio: 5 / 2;
-      background-size: 6.25% 15.625%;
-    }
   }
 
   .point {

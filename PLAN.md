@@ -56,18 +56,17 @@ Detail pages: header (title, summary, date range, role, tags, links); mono coord
 ## 4. Latent space engine
 One Three.js scene, home page only. Positions computed at build time; the browser only renders.
 
-Build time — src/lib/embedding.ts (pure TS, runs in the home page frontmatter, no ML library):
-1. Each distinct tag gets a fixed 3D direction from a seeded PRNG (seed = hash of the tag string).
-2. Entry position = normalised sum of its tags' directions, scaled to a radius, plus small seeded jitter from its slug. Shared tags → nearby points.
-3. Small per-kind offset (project / experience / education) so kinds form loose clusters.
-4. Precompute each entry's 3 nearest neighbours (Euclidean). Detail pages reuse these.
-5. Morph targets: 2D position = 3D position with z flattened to 0, rescaled to the scatter area; 1D position = x from startDate on the timeline, y = 0.
-Use a tiny seeded PRNG in src/lib/prng.ts (e.g. mulberry32). Positions must be identical on every build.
+Build time — src/lib/embedding.ts (pure TS, runs at build time, no ML library):
+1. Similarity between two entries = Jaccard similarity of their tag sets (|A ∩ B| / |A ∪ B|); distance = 1 − similarity.
+2. Positions = classical MDS on that distance matrix: double-centre the squared distances, eigen-decompose with a deterministic Jacobi solver (fixed sweep order, eigenvalues sorted descending, each eigenvector's sign fixed so its largest-magnitude component is positive), and keep the top 3 dimensions using only positive eigenvalues. Scale uniformly so the farthest point sits at a fixed radius. No per-kind offset (colour distinguishes kinds). A tiny seeded jitter (src/lib/prng.ts, mulberry32) is applied only to entries whose tag sets are identical, so they don't stack.
+3. Nearest neighbours come directly from Jaccard similarity, not 3D distance: top 3 with similarity > 0, ties broken by newer startDate, then slug. An entry with no neighbours shows no "Nearest neighbours" block. Detail pages and the constellation lines both use this list.
+4. Morph targets: 2D position = the first two MDS coordinates (the 3D→2D morph flattens the third), scaled uniformly; 1D position = x from startDate on the timeline, y = 0.
+Determinism rule: same content → same positions (verified by unit tests and by two clean builds in CI). Adding or editing entries may move every point, because MDS depends on all pairwise distances.
 
 Scene:
 - Content points: one per entry, coloured by kind, larger, raycastable.
 - Ambient cloud: ~2000 points desktop / ~600 mobile, seeded, low opacity, slow noise drift in the vertex shader. THREE.Points + custom ShaderMaterial, soft round sprites, additive blending. Not interactive.
-- Constellation lines from the hovered point to its 3 neighbours, hidden otherwise.
+- Constellation lines from the hovered point to its neighbours (the Jaccard list above), hidden otherwise.
 - Faint axis gizmo + grid, fading out as the morph begins.
 - Labels are HTML overlays positioned by projecting 3D → screen (not 3D text).
 

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { hashString, mulberry32 } from './prng';
 import {
+  classicalMds,
   computeEmbedding,
-  distance3,
   entryKey,
   formatCoordinates,
+  jaccardSimilarity,
+  symmetricEigen,
   type EmbeddingInput,
   type EntryKind,
 } from './embedding';
@@ -49,70 +51,98 @@ function randomInputs(count: number, seed: string): EmbeddingInput[] {
   });
 }
 
-/** Plain-object form of the embedding for deep comparison. */
-function serialise(inputs: EmbeddingInput[]) {
-  return JSON.stringify([...computeEmbedding(inputs)]);
-}
+const serialise = (inputs: EmbeddingInput[]) =>
+  JSON.stringify([...computeEmbedding(inputs)]);
+const distance = (a: readonly number[], b: readonly number[]) =>
+  Math.hypot(...a.map((value, i) => value - (b[i] ?? 0)));
+
+describe('symmetricEigen', () => {
+  const matrix = [
+    [4, 1, 2],
+    [1, 3, 0],
+    [2, 0, 5],
+  ];
+  const { values, vectors } = symmetricEigen(matrix);
+
+  it('satisfies A·v = λ·v with unit vectors, eigenvalues descending', () => {
+    vectors.forEach((vector, index) => {
+      const lambda = values[index] ?? Number.NaN;
+      const product = matrix.map((row) =>
+        row.reduce((sum, a, j) => sum + a * (vector[j] ?? 0), 0),
+      );
+      product.forEach((value, i) =>
+        expect(value).toBeCloseTo(lambda * (vector[i] ?? 0), 9),
+      );
+      expect(Math.hypot(...vector)).toBeCloseTo(1, 12);
+    });
+    expect([...values].sort((a, b) => b - a)).toEqual(values);
+  });
+
+  it('fixes the sign so the largest-magnitude component is positive', () => {
+    for (const vector of vectors) {
+      const largest = vector.reduce((best, value) =>
+        Math.abs(value) > Math.abs(best) ? value : best,
+      );
+      expect(largest).toBeGreaterThan(0);
+    }
+  });
+
+  it('is deterministic', () => {
+    expect(JSON.stringify(symmetricEigen(matrix))).toBe(
+      JSON.stringify({ values, vectors }),
+    );
+  });
+});
+
+describe('classicalMds', () => {
+  it('recovers the pairwise distances of points that truly live in 3D', () => {
+    const points = [
+      [0, 0, 0],
+      [1, 0, 0],
+      [0, 2, 0],
+      [0, 0, 3],
+      [1, 1, 1],
+    ];
+    const distances = points.map((a) => points.map((b) => distance(a, b)));
+    const recovered = classicalMds(distances, 3);
+    points.forEach((_, i) =>
+      points.forEach((_, j) =>
+        expect(distance(recovered[i] ?? [], recovered[j] ?? [])).toBeCloseTo(
+          distances[i]?.[j] ?? 0,
+          9,
+        ),
+      ),
+    );
+  });
+
+  it('uses only positive eigenvalues (extra dimensions are zero)', () => {
+    const distances = [
+      [0, 1],
+      [1, 0],
+    ];
+    const coords = classicalMds(distances, 3);
+    expect(coords.map((c) => [c[1], c[2]])).toEqual([
+      [0, 0],
+      [0, 0],
+    ]);
+    expect(distance(coords[0] ?? [], coords[1] ?? [])).toBeCloseTo(1, 12);
+  });
+});
 
 describe('computeEmbedding determinism', () => {
   const inputs = randomInputs(20, 'determinism');
 
-  it('gives identical output on repeated runs', () => {
+  it('gives byte-identical output on repeated runs', () => {
     expect(serialise(inputs)).toBe(serialise(inputs));
   });
 
   it('does not depend on input order', () => {
     expect(serialise([...inputs].reverse())).toBe(serialise(inputs));
   });
-
-  it('keeps an entry fixed when unrelated entries are added', () => {
-    const before = computeEmbedding(inputs).get('project/entry-0');
-    const after = computeEmbedding([
-      ...inputs,
-      {
-        kind: 'project',
-        id: 'new',
-        tags: ['mobile'],
-        startDate: new Date(Date.UTC(2020, 0, 1)),
-      },
-    ]).get('project/entry-0');
-    expect(after?.position3).toEqual(before?.position3);
-  });
 });
 
-describe('nearest neighbours', () => {
-  it('match a brute-force search, closest first, ties broken by key', () => {
-    const points = computeEmbedding(randomInputs(25, 'neighbours'));
-    for (const point of points.values()) {
-      const expected = [...points.values()]
-        .filter((other) => other.key !== point.key)
-        .map((other) => ({
-          key: other.key,
-          distance: distance3(point.position3, other.position3),
-        }))
-        .sort((a, b) => a.distance - b.distance || a.key.localeCompare(b.key))
-        .slice(0, 3);
-      expect(point.neighbours.map((n) => n.key)).toEqual(
-        expected.map((n) => n.key),
-      );
-      point.neighbours.forEach((neighbour, index) => {
-        expect(neighbour.distance).toBeCloseTo(
-          expected[index]?.distance ?? Number.NaN,
-          2,
-        );
-      });
-    }
-  });
-
-  it('never include the entry itself and return min(3, n - 1) neighbours', () => {
-    const points = computeEmbedding(randomInputs(3, 'small'));
-    for (const point of points.values()) {
-      expect(point.neighbours).toHaveLength(2);
-      expect(point.neighbours.map((n) => n.key)).not.toContain(point.key);
-    }
-  });
-
-  it('put entries with shared tags closer than entries without', () => {
+describe('positions', () => {
+  it('put entries sharing more tags closer together', () => {
     const date = new Date(Date.UTC(2020, 0, 1));
     const points = computeEmbedding([
       {
@@ -124,19 +154,118 @@ describe('nearest neighbours', () => {
       {
         kind: 'project',
         id: 'b',
-        tags: ['llm', 'nlp', 'python'],
+        tags: ['llm', 'nlp', 'pytorch'],
         startDate: date,
       },
       { kind: 'project', id: 'c', tags: ['cfd', 'mobile'], startDate: date },
       {
         kind: 'project',
         id: 'd',
-        tags: ['privacy', 'research'],
+        tags: ['privacy', 'research', 'cfd'],
         startDate: date,
       },
     ]);
-    expect(points.get('project/a')?.neighbours[0]?.key).toBe('project/b');
-    expect(points.get('project/b')?.neighbours[0]?.key).toBe('project/a');
+    const at = (id: string) =>
+      points.get(`project/${id}`)?.position3 ?? [0, 0, 0];
+    expect(distance(at('a'), at('b'))).toBeLessThan(distance(at('a'), at('c')));
+    expect(distance(at('c'), at('d'))).toBeLessThan(distance(at('a'), at('d')));
+  });
+
+  it('separate entries with identical tag sets by a small jitter only', () => {
+    const date = new Date(Date.UTC(2020, 0, 1));
+    const points = computeEmbedding([
+      { kind: 'project', id: 'a', tags: ['llm', 'nlp'], startDate: date },
+      { kind: 'experience', id: 'b', tags: ['nlp', 'llm'], startDate: date },
+      { kind: 'project', id: 'c', tags: ['cfd'], startDate: date },
+    ]);
+    const a = points.get('project/a')?.position3 ?? [0, 0, 0];
+    const b = points.get('experience/b')?.position3 ?? [0, 0, 0];
+    expect(distance(a, b)).toBeGreaterThan(0);
+    expect(distance(a, b)).toBeLessThan(0.2);
+  });
+
+  it('scale so the farthest point is at radius 2', () => {
+    const points = [...computeEmbedding(randomInputs(12, 'radius')).values()];
+    expect(
+      Math.max(...points.map((p) => Math.hypot(...p.position3))),
+    ).toBeCloseTo(2, 2);
+  });
+});
+
+describe('neighbours (Jaccard tag similarity)', () => {
+  it('match a brute-force ranking: similarity desc, newer start, then slug; only similarity > 0', () => {
+    const inputs = randomInputs(25, 'neighbours');
+    const points = computeEmbedding(inputs);
+    for (const input of inputs) {
+      const key = entryKey(input.kind, input.id);
+      const expected = inputs
+        .filter((other) => other !== input)
+        .map((other) => ({
+          other,
+          similarity: jaccardSimilarity(
+            new Set(input.tags),
+            new Set(other.tags),
+          ),
+        }))
+        .filter((candidate) => candidate.similarity > 0)
+        .sort(
+          (a, b) =>
+            b.similarity - a.similarity ||
+            b.other.startDate.getTime() - a.other.startDate.getTime() ||
+            a.other.id.localeCompare(b.other.id),
+        )
+        .slice(0, 3);
+      expect(points.get(key)?.neighbours.map((n) => n.key)).toEqual(
+        expected.map(({ other }) => entryKey(other.kind, other.id)),
+      );
+    }
+  });
+
+  it('breaks similarity ties by newer start date, then slug', () => {
+    const points = computeEmbedding([
+      {
+        kind: 'project',
+        id: 'origin',
+        tags: ['llm'],
+        startDate: new Date(Date.UTC(2020, 0, 1)),
+      },
+      {
+        kind: 'project',
+        id: 'old',
+        tags: ['llm'],
+        startDate: new Date(Date.UTC(2018, 0, 1)),
+      },
+      {
+        kind: 'project',
+        id: 'new-b',
+        tags: ['llm'],
+        startDate: new Date(Date.UTC(2022, 0, 1)),
+      },
+      {
+        kind: 'project',
+        id: 'new-a',
+        tags: ['llm'],
+        startDate: new Date(Date.UTC(2022, 0, 1)),
+      },
+    ]);
+    expect(points.get('project/origin')?.neighbours.map((n) => n.key)).toEqual([
+      'project/new-a',
+      'project/new-b',
+      'project/old',
+    ]);
+  });
+
+  it('is empty when no other entry shares a tag', () => {
+    const date = new Date(Date.UTC(2020, 0, 1));
+    const points = computeEmbedding([
+      { kind: 'project', id: 'lonely', tags: ['mobile'], startDate: date },
+      { kind: 'project', id: 'x', tags: ['llm'], startDate: date },
+      { kind: 'project', id: 'y', tags: ['llm', 'nlp'], startDate: date },
+    ]);
+    expect(points.get('project/lonely')?.neighbours).toEqual([]);
+    expect(points.get('project/x')?.neighbours).toEqual([
+      { key: 'project/y', similarity: 0.5 },
+    ]);
   });
 });
 
@@ -144,7 +273,7 @@ describe('morph targets', () => {
   const inputs = randomInputs(12, 'targets');
   const points = [...computeEmbedding(inputs).values()];
 
-  it('2D target flattens z and scales so the largest |x| or |y| is 1', () => {
+  it('2D target is the first two MDS coordinates, uniformly scaled so max |x|,|y| is 1', () => {
     const extent = Math.max(
       ...points.flatMap((p) => [
         Math.abs(p.position2[0]),
@@ -152,8 +281,10 @@ describe('morph targets', () => {
       ]),
     );
     expect(extent).toBeCloseTo(1, 2);
+    const reference =
+      points.find((p) => Math.abs(p.position3[0]) > 0.5) ?? points[0];
     const scale =
-      (points[0]?.position2[0] ?? 0) / (points[0]?.position3[0] ?? 1);
+      (reference?.position2[0] ?? 0) / (reference?.position3[0] ?? 1);
     for (const point of points) {
       expect(point.position2[0]).toBeCloseTo(point.position3[0] * scale, 2);
       expect(point.position2[1]).toBeCloseTo(point.position3[1] * scale, 2);

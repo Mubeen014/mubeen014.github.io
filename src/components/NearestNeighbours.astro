@@ -1,10 +1,10 @@
 ---
 /**
  * "Nearest neighbours" block for a detail page: the closest entries in the latent space,
- * each as a card showing its distance on hover/focus.
+ * i.e. the entries sharing the most tags, each as a card showing its similarity on hover/focus.
  *
  * Props:
- * - neighbours: neighbouring entries with distances, closest first.
+ * - neighbours: related entries with similarities, most similar first (non-empty).
  */
 import Card from './Card.astro';
 import { formatDateRange } from '../lib/dates';
@@ -19,9 +19,9 @@ const { neighbours } = Astro.props;
 
 <section class="neighbours" aria-labelledby="neighbours-heading">
   <h2 id="neighbours-heading">Nearest neighbours</h2>
-  <p class="mono">closest entries in the latent space · euclidean distance d</p>
+  <p class="mono">entries sharing the most tags · jaccard similarity</p>
   <ul class="grid">
-    {neighbours.map(({ entry, distance }) => (
+    {neighbours.map(({ entry, similarity }) => (
       <li>
         <Card
           title={entry.title}
@@ -31,7 +31,7 @@ const { neighbours } = Astro.props;
           kind={entry.kind}
           dateRange={formatDateRange(entry.startDate, entry.endDate)}
           tags={entry.tags}
-          coords={`d = ${distance.toFixed(2)}`}
+          coords={`sim = ${similarity.toFixed(2)}`}
           placeholder={entry.placeholder}
         />
       </li>
