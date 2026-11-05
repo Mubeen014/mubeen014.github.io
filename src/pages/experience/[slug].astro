@@ -2,7 +2,11 @@
 /** Role detail page, one per entry in the experience collection. */
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import DetailLayout from '../../layouts/DetailLayout.astro';
-import { getAdjacentEntries } from '../../lib/entries';
+import {
+  getAdjacentEntries,
+  getEntry,
+  getNearestNeighbours,
+} from '../../lib/entries';
 import { formatDateRange } from '../../lib/dates';
 
 export async function getStaticPaths() {
@@ -18,6 +22,8 @@ const { role } = Astro.props;
 const { data } = role;
 const { Content } = await render(role);
 const { previous, next } = await getAdjacentEntries('experience', role.id);
+const entry = await getEntry('experience', role.id);
+const neighbours = await getNearestNeighbours(entry);
 ---
 
 <DetailLayout
@@ -31,6 +37,8 @@ const { previous, next } = await getAdjacentEntries('experience', role.id);
   placeholder={data.placeholder}
   previous={previous}
   next={next}
+  coords={entry.coords}
+  neighbours={neighbours}
 >
   <Content />
 </DetailLayout>

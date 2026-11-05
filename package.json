@@ -12,7 +12,8 @@
     "preview": "astro preview",
     "check": "astro check",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.1.2",
@@ -27,6 +28,7 @@
     "prettier": "^3.9.10",
     "prettier-plugin-astro": "^1.1.2",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.1"
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0"
   }
 }

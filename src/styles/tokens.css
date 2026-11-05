@@ -14,6 +14,8 @@
     var(--text)
   ); /* primary button hover */
   --point-project: #f28c28;
+  /* Resting project points/markers: desaturated so full --accent only means hover/selected. */
+  --point-project-rest: #c49167;
   --point-experience: #5b8def;
   --point-education: #c9d3ea;
 

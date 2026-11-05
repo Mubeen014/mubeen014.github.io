@@ -31,4 +31,4 @@ Personal website: Astro + TypeScript + Three.js + GSAP, deployed to GitHub Pages
 - `npm run check` — type-check only
 - `npm run lint` — ESLint
 - `npm run format` — Prettier (Markdown docs are excluded)
-- test: not set up yet (Vitest arrives in Phase 4)
+- `npm test` — Vitest unit tests (`src/**/*.test.ts`)

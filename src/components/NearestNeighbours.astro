@@ -1,0 +1,57 @@
+---
+/**
+ * "Nearest neighbours" block for a detail page: the closest entries in the latent space,
+ * each as a card showing its distance on hover/focus.
+ *
+ * Props:
+ * - neighbours: neighbouring entries with distances, closest first.
+ */
+import Card from './Card.astro';
+import { formatDateRange } from '../lib/dates';
+import type { NearestNeighbour } from '../lib/entries';
+
+interface Props {
+  neighbours: NearestNeighbour[];
+}
+
+const { neighbours } = Astro.props;
+---
+
+<section class="neighbours" aria-labelledby="neighbours-heading">
+  <h2 id="neighbours-heading">Nearest neighbours</h2>
+  <p class="mono">closest entries in the latent space · euclidean distance d</p>
+  <ul class="grid">
+    {neighbours.map(({ entry, distance }) => (
+      <li>
+        <Card
+          title={entry.title}
+          subtitle={entry.subtitle}
+          summary={entry.summary}
+          href={entry.href}
+          kind={entry.kind}
+          dateRange={formatDateRange(entry.startDate, entry.endDate)}
+          tags={entry.tags}
+          coords={`d = ${distance.toFixed(2)}`}
+          placeholder={entry.placeholder}
+        />
+      </li>
+    ))}
+  </ul>
+</section>
+
+<style>
+  .neighbours {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-8);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+    gap: var(--space-4);
+    margin: var(--space-3) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+</style>

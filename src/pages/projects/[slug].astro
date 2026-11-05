@@ -3,7 +3,12 @@
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import DetailLayout from '../../layouts/DetailLayout.astro';
 import ProjectCover from '../../components/ProjectCover.astro';
-import { getAdjacentEntries, getProjectCovers } from '../../lib/entries';
+import {
+  getAdjacentEntries,
+  getEntry,
+  getNearestNeighbours,
+  getProjectCovers,
+} from '../../lib/entries';
 import { formatDateRange } from '../../lib/dates';
 
 export async function getStaticPaths() {
@@ -22,6 +27,8 @@ const { project } = Astro.props;
 const { data } = project;
 const { Content } = await render(project);
 const { previous, next } = await getAdjacentEntries('project', project.id);
+const entry = await getEntry('project', project.id);
+const neighbours = await getNearestNeighbours(entry);
 const cover = (await getProjectCovers()).get(project.id);
 const linkLabels = {
   repo: 'Repository',
@@ -47,6 +54,8 @@ const links = (Object.keys(linkLabels) as (keyof typeof linkLabels)[]).flatMap(
   placeholder={data.placeholder}
   previous={previous}
   next={next}
+  coords={entry.coords}
+  neighbours={neighbours}
 >
   {cover && (
     <ProjectCover

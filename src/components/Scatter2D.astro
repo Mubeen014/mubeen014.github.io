@@ -1,0 +1,176 @@
+---
+/**
+ * Static 2D scatter of entries using the embedding's 2D targets (z flattened). Points are
+ * positioned in percent so it scales to any width. Points are mouse shortcuts only: they
+ * are hidden from assistive tech because the cards below carry the same links.
+ * Pages sync highlighting through `data-key` / `data-active` / `data-dimmed`.
+ *
+ * Props:
+ * - points: entries to plot, with their 2D positions.
+ */
+import type { Vector2 } from '../lib/embedding';
+
+interface ScatterPoint {
+  key: string;
+  title: string;
+  href: string;
+  position2: Vector2;
+}
+
+interface Props {
+  points: ScatterPoint[];
+}
+
+const { points } = Astro.props;
+if (points.length === 0) {
+  throw new Error('Scatter2D: no points to plot');
+}
+
+// Fit the plotted points' bounds into the box with padding; x right, y up.
+const PADDING = 0.1;
+const xs = points.map((point) => point.position2[0]);
+const ys = points.map((point) => point.position2[1]);
+const [minX, maxX, minY, maxY] = [
+  Math.min(...xs),
+  Math.max(...xs),
+  Math.min(...ys),
+  Math.max(...ys),
+];
+const toPercent = (value: number, min: number, max: number) =>
+  max === min
+    ? 50
+    : (PADDING + ((value - min) / (max - min)) * (1 - 2 * PADDING)) * 100;
+const plotted = points.map((point) => {
+  const left = toPercent(point.position2[0], minX, maxX);
+  return {
+    ...point,
+    left,
+    top: 100 - toPercent(point.position2[1], minY, maxY),
+    labelOnLeft: left > 65,
+  };
+});
+---
+
+<figure class="figure">
+  <div class="scatter" data-scatter>
+    {plotted.map((point) => (
+      <a
+        class:list={['point', { 'label-left': point.labelOnLeft }]}
+        href={point.href}
+        tabindex="-1"
+        aria-hidden="true"
+        data-key={point.key}
+        style={`left: ${point.left.toFixed(2)}%; top: ${point.top.toFixed(2)}%`}
+      >
+        <span class="dot" />
+        <span class="label mono">{point.title}</span>
+      </a>
+    ))}
+    <span class="axis axis-x mono" aria-hidden="true">
+      z₁ →
+    </span>
+    <span class="axis axis-y mono" aria-hidden="true">
+      z₂ ↑
+    </span>
+  </div>
+  <figcaption class="mono">
+    2D projection of the latent space · nearby points share tags
+  </figcaption>
+</figure>
+
+<style>
+  .figure {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+  }
+  .scatter {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border: 1px solid var(--navy-line);
+    border-radius: var(--radius);
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--navy-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--navy-line) 1px, transparent 1px);
+    background-size: 12.5% 16.667%;
+    background-position: -1px -1px;
+    overflow: hidden;
+  }
+  @media (min-width: 48rem) {
+    .scatter {
+      aspect-ratio: 5 / 2;
+      background-size: 6.25% 15.625%;
+    }
+  }
+
+  .point {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    transform: translate(-7px, -50%);
+    text-decoration: none;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+  .label-left {
+    flex-direction: row-reverse;
+    transform: translate(calc(-100% + 7px), -50%);
+  }
+  .dot {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--point-project-rest);
+    transition:
+      transform var(--dur-fast) var(--ease-out),
+      background-color var(--dur-color) var(--ease-out),
+      box-shadow var(--dur-color) var(--ease-out);
+  }
+  .label {
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--bg-raised);
+    color: var(--text);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+
+  /* Hover/selected: full accent plus size and a glow ring, so it never relies on colour. */
+  .point:is(:hover, [data-active]) .dot {
+    transform: scale(1.6);
+    background: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+  .point:is(:hover, [data-active]) .label {
+    opacity: 1;
+  }
+  .point:is(:hover, [data-active]) {
+    z-index: 1;
+  }
+  .point[data-dimmed] {
+    opacity: 0.2;
+  }
+
+  .axis {
+    position: absolute;
+    color: var(--text-muted);
+  }
+  .axis-x {
+    right: var(--space-3);
+    bottom: var(--space-2);
+  }
+  .axis-y {
+    left: var(--space-3);
+    top: var(--space-2);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .point:is(:hover, [data-active]) .dot {
+      transform: scale(1.6);
+    }
+  }
+</style>

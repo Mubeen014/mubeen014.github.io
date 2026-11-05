@@ -1,13 +1,15 @@
 ---
 /**
- * Projects index: single-select tag filter over the card grid ("All" by default; tapping
- * the active tag clears it). The static 2D scatter above the list arrives with the
- * embedding in Phase 4.
+ * Projects index: static 2D scatter of the projects (same embedding as the home page),
+ * then a single-select tag filter over the card grid ("All" by default; tapping the active
+ * tag clears it). Hovering or focusing a card highlights its point and vice versa; the
+ * filter dims points of hidden projects.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Card from '../../components/Card.astro';
 import TagChip from '../../components/TagChip.astro';
 import ProjectCover from '../../components/ProjectCover.astro';
+import Scatter2D from '../../components/Scatter2D.astro';
 import { getEntriesOfKind, getProjectCovers } from '../../lib/entries';
 import { formatDateRange } from '../../lib/dates';
 
@@ -27,6 +29,10 @@ const allTags = [
       <h1>Projects</h1>
       <p class="intro">Case studies and experiments, newest first.</p>
     </header>
+
+    <div class="map">
+      <Scatter2D points={projects} />
+    </div>
 
     <div class="filter">
       <p class="mono" id="filter-label">
@@ -49,7 +55,7 @@ const allTags = [
 
     <ul class="grid" data-project-list>
       {projects.map((project) => (
-        <li data-tags={project.tags.join(' ')}>
+        <li data-tags={project.tags.join(' ')} data-key={project.key}>
           <Card
             title={project.title}
             summary={project.summary}
@@ -57,6 +63,7 @@ const allTags = [
             kind="project"
             dateRange={formatDateRange(project.startDate, project.endDate)}
             tags={project.tags}
+            coords={project.coords}
             placeholder={project.placeholder}
             headingLevel={2}
           >
@@ -74,21 +81,29 @@ const allTags = [
 </BaseLayout>
 
 <script>
-  /** Single-select tag filter. "All" (empty tag) shows everything. */
+  /**
+   * Single-select tag filter ("All" = empty tag shows everything) and card <-> scatter
+   * point highlighting.
+   */
   const filterList = document.querySelector<HTMLElement>('[data-tag-filter]');
   const projectList = document.querySelector<HTMLElement>(
     '[data-project-list]',
   );
   const status = document.querySelector<HTMLElement>('[data-filter-status]');
   if (!filterList || !projectList || !status) {
-    throw new Error('Project filter: filter, list or status element not found');
+    throw new Error('Projects page: filter, list or status element not found');
   }
   const chipItems = [
     ...filterList.querySelectorAll<HTMLElement>('li[data-tag]'),
   ];
   const projectItems = [
-    ...projectList.querySelectorAll<HTMLElement>('li[data-tags]'),
+    ...projectList.querySelectorAll<HTMLElement>('li[data-key]'),
   ];
+  const scatterPoints = new Map(
+    [
+      ...document.querySelectorAll<HTMLElement>('[data-scatter] [data-key]'),
+    ].map((point) => [point.dataset['key'] ?? '', point]),
+  );
   let activeTag = '';
 
   const applyFilter = () => {
@@ -103,6 +118,9 @@ const allTags = [
       const tags = (item.dataset['tags'] ?? '').split(' ');
       const visible = activeTag === '' || tags.includes(activeTag);
       item.hidden = !visible;
+      scatterPoints
+        .get(item.dataset['key'] ?? '')
+        ?.toggleAttribute('data-dimmed', !visible);
       visibleCount += visible ? 1 : 0;
     }
     status.textContent = `showing ${visibleCount} of ${projectItems.length}`;
@@ -118,6 +136,24 @@ const allTags = [
     activeTag = tag === activeTag ? '' : tag;
     applyFilter();
   });
+
+  const setLinked = (key: string, linked: boolean) => {
+    scatterPoints.get(key)?.toggleAttribute('data-active', linked);
+    projectItems
+      .find((item) => item.dataset['key'] === key)
+      ?.classList.toggle('linked', linked);
+  };
+  for (const item of projectItems) {
+    const key = item.dataset['key'] ?? '';
+    item.addEventListener('mouseenter', () => setLinked(key, true));
+    item.addEventListener('mouseleave', () => setLinked(key, false));
+    item.addEventListener('focusin', () => setLinked(key, true));
+    item.addEventListener('focusout', () => setLinked(key, false));
+  }
+  for (const [key, point] of scatterPoints) {
+    point.addEventListener('mouseenter', () => setLinked(key, true));
+    point.addEventListener('mouseleave', () => setLinked(key, false));
+  }
 </script>
 
 <style>
@@ -132,6 +168,9 @@ const allTags = [
   }
   .intro {
     color: var(--text-muted);
+  }
+  .map {
+    margin-bottom: var(--space-6);
   }
   .filter {
     display: flex;
@@ -157,5 +196,8 @@ const allTags = [
   }
   .grid li[hidden] {
     display: none;
+  }
+  .grid li.linked :global(.card) {
+    border-color: var(--accent);
   }
 </style>

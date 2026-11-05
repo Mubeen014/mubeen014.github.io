@@ -1,7 +1,7 @@
 ---
 /**
  * Layout for a single entry page (project, role or degree): header block, MDX body, then
- * prev/next links within the same collection. The nearest-neighbours block arrives in Phase 4.
+ * the nearest-neighbours block, and newer/older links within the same collection.
  *
  * Props:
  * - kind: entry kind (eyebrow label and back link).
@@ -12,7 +12,8 @@
  * - links: external links rendered as secondary buttons (may be empty).
  * - placeholder: show the dev-only placeholder badge.
  * - previous, next: neighbouring entries in index order; undefined at the ends.
- * - coords: optional mono coordinate readout, e.g. "z = [0.42, -1.17, 0.88]".
+ * - coords: mono coordinate readout, e.g. "z = [0.42, -1.17, 0.88]".
+ * - neighbours: nearest entries in the latent space, closest first.
  * Slots:
  * - cover: optional media shown between the header and the body.
  */
@@ -20,9 +21,11 @@ import BaseLayout from './BaseLayout.astro';
 import TagChip from '../components/TagChip.astro';
 import Button from '../components/Button.astro';
 import PlaceholderBadge from '../components/PlaceholderBadge.astro';
+import NearestNeighbours from '../components/NearestNeighbours.astro';
 import {
   indexPathForKind,
   type AdjacentLink,
+  type NearestNeighbour,
   type EntryKind,
 } from '../lib/entries';
 
@@ -37,7 +40,8 @@ interface Props {
   placeholder: boolean;
   previous: AdjacentLink | undefined;
   next: AdjacentLink | undefined;
-  coords?: string;
+  coords: string;
+  neighbours: NearestNeighbour[];
 }
 
 const {
@@ -52,6 +56,7 @@ const {
   previous,
   next,
   coords,
+  neighbours,
 } = Astro.props;
 const indexLabel = {
   project: 'projects',
@@ -92,7 +97,9 @@ const indexLabel = {
           ))}
         </ul>
       )}
-      {coords && <p class="coords mono">{coords}</p>}
+      <p class="coords mono" title="Position in the 3D latent space">
+        {coords}
+      </p>
     </header>
     {Astro.slots.has('cover') && (
       <div class="cover">
@@ -102,6 +109,7 @@ const indexLabel = {
     <div class="prose">
       <slot />
     </div>
+    <NearestNeighbours neighbours={neighbours} />
     <nav class="pager" aria-label={`More ${indexLabel}`}>
       {previous && (
         <a class="pager-link previous" href={previous.href} rel="prev">
@@ -154,7 +162,7 @@ const indexLabel = {
     background: var(--text-muted);
   }
   .project .kind::before {
-    background: var(--point-project);
+    background: var(--point-project-rest);
   }
   .experience .kind::before {
     background: var(--point-experience);

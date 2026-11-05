@@ -30,6 +30,7 @@ const { entries, headingLevel = 3 } = Astro.props;
         kind={entry.kind}
         dateRange={formatDateRange(entry.startDate, entry.endDate)}
         tags={entry.tags}
+        coords={entry.coords}
         placeholder={entry.placeholder}
         headingLevel={headingLevel}
       />
@@ -72,7 +73,7 @@ const { entries, headingLevel = 3 } = Astro.props;
     background: var(--text-muted);
   }
   .project::before {
-    background: var(--point-project);
+    background: var(--point-project-rest);
   }
   .experience::before {
     background: var(--point-experience);

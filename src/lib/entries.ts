@@ -1,17 +1,29 @@
 /**
- * One typed view over all three content collections. Pages, and later the embedding and
- * search index, read entries from here rather than from the collections directly.
+ * One typed view over all three content collections, joined with their latent-space
+ * embedding. Pages (and later the search index) read entries from here rather than from
+ * the collections directly.
  */
 import type { ImageMetadata } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { url } from './paths';
+import {
+  computeEmbedding,
+  entryKey,
+  formatCoordinates,
+  type EntryKind,
+  type Neighbour,
+  type Vector2,
+  type Vector3,
+} from './embedding';
 
-export type EntryKind = 'project' | 'experience' | 'education';
+export type { EntryKind };
 
 /** A project, role or degree, normalised across collections. */
 export interface Entry {
   kind: EntryKind;
   id: string;
+  /** Unique across collections, e.g. "project/project-alpha". */
+  key: string;
   href: string;
   title: string;
   /** Line shown under the title (experience: organisation · location · employment type). */
@@ -22,6 +34,26 @@ export interface Entry {
   tags: string[];
   featured: boolean;
   placeholder: boolean;
+  /** Latent-space positions; see `embedding.ts`. */
+  position3: Vector3;
+  position2: Vector2;
+  position1: number;
+  /** Mono readout of `position3`, e.g. "z = [0.42, -1.17, 0.88]". */
+  coords: string;
+  /** Nearest other entries (by key), closest first. */
+  neighbours: Neighbour[];
+}
+
+/** An entry before its embedding is attached. */
+type BaseEntry = Omit<
+  Entry,
+  'position3' | 'position2' | 'position1' | 'coords' | 'neighbours'
+>;
+
+/** A neighbouring entry with its latent-space distance. */
+export interface NearestNeighbour {
+  entry: Entry;
+  distance: number;
 }
 
 /** A project's real cover image with its alt text. */
@@ -78,18 +110,19 @@ function titleLines(entry: AnyCollectionEntry): {
 }
 
 /**
- * Converts a collection entry into the shared `Entry` shape.
+ * Converts a collection entry into the shared shape (without its embedding).
  *
  * @param kind - Which collection the entry came from.
  * @param entry - The raw collection entry.
  * @returns The normalised entry.
  */
-function toEntry(kind: EntryKind, entry: AnyCollectionEntry): Entry {
+function toEntry(kind: EntryKind, entry: AnyCollectionEntry): BaseEntry {
   const { summary, startDate, endDate, tags, featured, placeholder } =
     entry.data;
   return {
     kind,
     id: entry.id,
+    key: entryKey(kind, entry.id),
     href: url(`${indexPaths[kind]}${entry.id}/`),
     ...titleLines(entry),
     summary,
@@ -123,9 +156,7 @@ function newestFirst(a: Entry, b: Entry): number {
 function warnAboutPlaceholders(entries: Entry[]): void {
   const placeholders = entries.filter((entry) => entry.placeholder);
   if (placeholders.length > 0) {
-    const list = placeholders
-      .map((entry) => `${entry.kind}/${entry.id}`)
-      .join(', ');
+    const list = placeholders.map((entry) => entry.key).join(', ');
     console.warn(
       `[entries] ${placeholders.length} entries still marked placeholder: ${list}`,
     );
@@ -143,11 +174,28 @@ async function loadAllEntries(): Promise<Entry[]> {
     getCollection('experience'),
     getCollection('education'),
   ]);
-  const entries = [
+  const baseEntries = [
     ...projects.map((entry) => toEntry('project', entry)),
     ...experience.map((entry) => toEntry('experience', entry)),
     ...education.map((entry) => toEntry('education', entry)),
-  ].sort(newestFirst);
+  ];
+  const points = computeEmbedding(baseEntries);
+  const entries = baseEntries
+    .map((base): Entry => {
+      const point = points.get(base.key);
+      if (!point) {
+        throw new Error(`entries: no embedding for ${base.key}`);
+      }
+      return {
+        ...base,
+        position3: point.position3,
+        position2: point.position2,
+        position1: point.position1,
+        coords: formatCoordinates(point.position3),
+        neighbours: point.neighbours,
+      };
+    })
+    .sort(newestFirst);
   if (import.meta.env.PROD) {
     warnAboutPlaceholders(entries);
   }
@@ -222,4 +270,47 @@ export async function getProjectCovers(): Promise<Map<string, CoverImage>> {
     covers.set(project.id, { src: cover, alt: coverAlt });
   }
   return covers;
+}
+
+/**
+ * One entry by kind and id.
+ *
+ * @param kind - Entry kind.
+ * @param id - Entry id within its collection.
+ * @returns The entry.
+ * @throws Error if it does not exist.
+ */
+export async function getEntry(kind: EntryKind, id: string): Promise<Entry> {
+  const key = entryKey(kind, id);
+  const entry = (await getAllEntries()).find(
+    (candidate) => candidate.key === key,
+  );
+  if (!entry) {
+    throw new Error(`getEntry: no entry ${key}`);
+  }
+  return entry;
+}
+
+/**
+ * Resolves an entry's nearest neighbours to full entries.
+ *
+ * @param entry - The entry whose neighbours to resolve.
+ * @returns Neighbouring entries with distances, closest first.
+ * @throws Error if a neighbour key does not match any entry.
+ */
+export async function getNearestNeighbours(
+  entry: Entry,
+): Promise<NearestNeighbour[]> {
+  const byKey = new Map(
+    (await getAllEntries()).map((candidate) => [candidate.key, candidate]),
+  );
+  return entry.neighbours.map(({ key, distance }) => {
+    const neighbour = byKey.get(key);
+    if (!neighbour) {
+      throw new Error(
+        `getNearestNeighbours: unknown neighbour ${key} of ${entry.key}`,
+      );
+    }
+    return { entry: neighbour, distance };
+  });
 }

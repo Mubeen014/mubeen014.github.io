@@ -2,7 +2,11 @@
 /** Degree detail page, one per entry in the education collection. */
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import DetailLayout from '../../layouts/DetailLayout.astro';
-import { getAdjacentEntries } from '../../lib/entries';
+import {
+  getAdjacentEntries,
+  getEntry,
+  getNearestNeighbours,
+} from '../../lib/entries';
 import { formatDateRange } from '../../lib/dates';
 
 export async function getStaticPaths() {
@@ -21,6 +25,8 @@ const { degree } = Astro.props;
 const { data } = degree;
 const { Content } = await render(degree);
 const { previous, next } = await getAdjacentEntries('education', degree.id);
+const entry = await getEntry('education', degree.id);
+const neighbours = await getNearestNeighbours(entry);
 ---
 
 <DetailLayout
@@ -34,6 +40,8 @@ const { previous, next } = await getAdjacentEntries('education', degree.id);
   placeholder={data.placeholder}
   previous={previous}
   next={next}
+  coords={entry.coords}
+  neighbours={neighbours}
 >
   <Content />
 </DetailLayout>
