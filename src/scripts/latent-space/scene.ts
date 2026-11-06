@@ -12,6 +12,7 @@ import { readPalette } from './palette';
 import { createNeighbourLines } from './neighbour-lines';
 import { createPointLabel } from './labels';
 import { createInteraction } from './interaction';
+import { createMorph } from './morph';
 
 const CAMERA_FOV = 40;
 const CAMERA_DISTANCE = 8;
@@ -22,11 +23,32 @@ const INITIALISE_MS = 1200;
 const MAX_FRAME_SECONDS = 0.1;
 const AMBIENT_COUNT = { desktop: 2000, compact: 600 };
 const PIXEL_RATIO_CAP = { desktop: 2, compact: 1.5 };
+const MAX_SCATTER_SCALE = 2.2;
+const MAX_LINE_SCALE = 2.8;
 
 /** Handle for a mounted scene. */
 export interface LatentSpaceHandle {
+  /**
+   * Sets the dimensionality-reduction morph (driven by scroll).
+   *
+   * @param value - 0 = 3D cloud, 1 = 2D scatter, 2 = 1D timeline.
+   */
+  setMorph(value: number): void;
+  /**
+   * Highlights the point of the card in view, or clears it.
+   *
+   * @param key - Entry key, or null.
+   */
+  setScrollHighlight(key: string | null): void;
   /** Stops rendering and releases every GPU resource, listener and observer. */
   destroy(): void;
+}
+
+/** Viewport-dependent sizes for the morph targets. */
+interface MorphLayout {
+  frontDistance: number;
+  scale2: number;
+  scale1: number;
 }
 
 /**
@@ -40,29 +62,49 @@ function easeOutCubic(t: number): number {
 }
 
 /**
- * Shifts the projection so the cloud sits beside the hero text: right of centre on wide
+ * Shifts the projection so the cloud sits beside the content: right of centre on wide
  * screens, above centre on tall ones (the text is bottom-left). Tall screens also move the
  * camera back so the cloud's width fits the narrow view.
  *
  * @param camera - The scene camera.
  * @param width - Canvas width in CSS pixels.
  * @param height - Canvas height in CSS pixels.
+ * @param moveCamera - False while the morph owns the camera position.
+ * @returns Sizes for the 2D scatter and 1D line that fit the visible area.
  */
 function frameCamera(
   camera: PerspectiveCamera,
   width: number,
   height: number,
-): void {
+  moveCamera: boolean,
+): MorphLayout {
+  const wide = width >= height;
   camera.aspect = width / height;
-  camera.position.setLength(
-    CAMERA_DISTANCE * Math.sqrt(Math.max(1, 0.9 / camera.aspect)),
-  );
-  if (width >= height) {
+  const distance =
+    CAMERA_DISTANCE * Math.sqrt(Math.max(1, 0.9 / camera.aspect));
+  if (moveCamera) {
+    camera.position.setLength(distance);
+  }
+  if (wide) {
     camera.setViewOffset(width, height, -width * 0.18, 0, width, height);
   } else {
     camera.setViewOffset(width, height, 0, height * 0.14, width, height);
   }
   camera.updateProjectionMatrix();
+
+  // The origin sits right of centre (wide) or above centre (tall); keep targets clear of the
+  // edges and, on wide screens, of the left content column.
+  const halfHeight = distance * Math.tan(((CAMERA_FOV / 2) * Math.PI) / 180);
+  const halfWidth = halfHeight * camera.aspect;
+  const availableX = halfWidth * (wide ? 0.55 : 0.85);
+  // The 1D line extends left of the origin too, where the content column sits on wide screens.
+  const availableLineX = halfWidth * (wide ? 0.4 : 0.85);
+  const availableY = halfHeight * (wide ? 0.75 : 0.45);
+  return {
+    frontDistance: distance,
+    scale2: Math.min(MAX_SCATTER_SCALE, availableX, availableY),
+    scale1: Math.min(MAX_LINE_SCALE, availableLineX),
+  };
 }
 
 /**
@@ -112,6 +154,14 @@ export function mountLatentSpace(
     contentPoints.object,
   );
   const label = createPointLabel(container);
+  const morph = createMorph({
+    camera,
+    contentPoints,
+    ambientCloud,
+    gizmo,
+    palette,
+  });
+  scene.add(morph.object);
 
   const controls = new OrbitControls(camera, canvas);
   controls.enableDamping = true;
@@ -156,7 +206,8 @@ export function mountLatentSpace(
     const { width, height } = container.getBoundingClientRect();
     if (width === 0 || height === 0) return;
     renderer.setSize(width, height, false);
-    frameCamera(camera, width, height);
+    const layout = frameCamera(camera, width, height, !morph.isActive());
+    morph.setLayout(layout.frontDistance, layout.scale2, layout.scale1);
   };
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(container);
@@ -187,11 +238,17 @@ export function mountLatentSpace(
       );
     }
     wasHighlighted = highlighted;
+    const morphing = morph.isActive();
+    container.toggleAttribute('data-morphing', morphing);
     controls.autoRotate =
-      !reducedMotion && !highlighted && now >= autoRotateResumesAt;
+      !reducedMotion && !highlighted && !morphing && now >= autoRotateResumesAt;
+    controls.enabled = !morphing && !interaction.isFlying();
+    interaction.setPointerEnabled(!morphing);
 
-    if (!interaction.isFlying()) {
-      controls.update(deltaSeconds); // the fly-in tween owns the camera while it runs
+    // The morph or the fly-in tween owns the camera while it runs.
+    morph.updateCamera();
+    if (!morph.isActive() && !interaction.isFlying()) {
+      controls.update(deltaSeconds);
     }
     interaction.update(deltaSeconds);
     renderer.render(scene, camera);
@@ -229,6 +286,7 @@ export function mountLatentSpace(
     gizmo.dispose();
     lines.dispose();
     label.dispose();
+    morph.dispose();
     renderer.dispose();
     canvas.remove();
     delete container.dataset['ready'];
@@ -241,6 +299,7 @@ export function mountLatentSpace(
   const onPageShow = (event: PageTransitionEvent) => {
     if (!event.persisted) return;
     interaction.reset();
+    if (morph.isActive()) return; // scrolled into the morph: the scroll position owns the camera
     camera.position.copy(CAMERA_REST_POSITION);
     controls.target.set(0, 0, 0);
     resize(); // reapplies the aspect-dependent camera distance
@@ -250,5 +309,9 @@ export function mountLatentSpace(
   window.addEventListener('pagehide', onPageHide);
   window.addEventListener('pageshow', onPageShow);
 
-  return { destroy };
+  return {
+    setMorph: (value) => morph.setMorph(value),
+    setScrollHighlight: (key) => interaction.setScrollHighlight(key),
+    destroy,
+  };
 }

@@ -39,11 +39,12 @@ const vertexShader = /* glsl */ `
 const fragmentShader = /* glsl */ `
   uniform vec3 uColorA;
   uniform vec3 uColorB;
+  uniform float uOpacity;
   varying float vSeed;
 
   void main() {
     float distanceFromCentre = length(gl_PointCoord - 0.5);
-    float alpha = (1.0 - smoothstep(0.0, 0.5, distanceFromCentre)) * 0.5;
+    float alpha = (1.0 - smoothstep(0.0, 0.5, distanceFromCentre)) * 0.5 * uOpacity;
     if (alpha < 0.01) discard;
     gl_FragColor = vec4(mix(uColorA, uColorB, vSeed), alpha);
     #include <colorspace_fragment>
@@ -58,6 +59,12 @@ export interface AmbientCloud {
    * @param seconds - Elapsed time; keep constant for a static cloud.
    */
   setTime(seconds: number): void;
+  /**
+   * Fades the whole cloud.
+   *
+   * @param opacity - 0 (invisible) to 1 (full).
+   */
+  setOpacity(opacity: number): void;
   /**
    * Sets the initialise animation progress.
    *
@@ -109,6 +116,7 @@ export function createAmbientCloud(
 
   const uTimeUniform = { value: 0 };
   const uProgressUniform = { value: 0 };
+  const uOpacityUniform = { value: 1 };
   const material = new ShaderMaterial({
     vertexShader,
     fragmentShader,
@@ -118,6 +126,7 @@ export function createAmbientCloud(
       uPixelRatio: { value: pixelRatio },
       uColorA: { value: palette.muted },
       uColorB: { value: palette.line },
+      uOpacity: uOpacityUniform,
     },
     transparent: true,
     depthWrite: false,
@@ -130,6 +139,10 @@ export function createAmbientCloud(
     object,
     setTime(seconds) {
       uTimeUniform.value = seconds;
+    },
+    setOpacity(opacity) {
+      uOpacityUniform.value = opacity;
+      object.visible = opacity > 0.001;
     },
     setProgress(progress) {
       uProgressUniform.value = progress;

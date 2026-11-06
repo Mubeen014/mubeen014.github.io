@@ -1,12 +1,17 @@
 ---
 /**
- * Home: hero (3D latent space over a static gradient, mounted after first paint), about,
- * featured projects, career timeline and contact.
+ * Home: one long scroll narrative over a sticky latent-space stage.
+ * - Hero: the 3D cloud (mounted after first paint over a static gradient).
+ * - About, then Projects (cloud flattens to a 2D scatter), then Experience & education
+ *   (points slide onto a 1D timeline), then Contact (the stage scrolls away).
+ * Reduced motion: no smooth scroll or morph; the stage stays behind the hero only and
+ * Projects shows a static 2D scatter instead.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Button from '../components/Button.astro';
 import Card from '../components/Card.astro';
 import ProjectCover from '../components/ProjectCover.astro';
+import Scatter2D from '../components/Scatter2D.astro';
 import Timeline from '../components/Timeline.astro';
 import { getAllEntries, getProjectCovers } from '../lib/entries';
 import { formatDateRange } from '../lib/dates';
@@ -19,9 +24,8 @@ import {
 } from '../lib/latent-space-data';
 
 const entries = await getAllEntries();
-const featuredProjects = entries.filter(
-  (entry) => entry.kind === 'project' && entry.featured,
-);
+const projects = entries.filter((entry) => entry.kind === 'project');
+const featuredProjects = projects.filter((entry) => entry.featured);
 const career = entries.filter((entry) => entry.kind !== 'project');
 const covers = await getProjectCovers();
 const latentSpace = toLatentSpaceData(entries);
@@ -35,127 +39,149 @@ const facts = [
 ---
 
 <BaseLayout title="Home" description={`${siteConfig.name}: ${siteConfig.role}`}>
-  <section class="hero" aria-labelledby="hero-name">
-    <div class="hero-space" aria-hidden="true" data-latent-space></div>
-    <script
-      type="application/json"
-      id={LATENT_SPACE_DATA_ID}
-      set:html={latentSpaceJson}
-    />
-    <div class="container hero-content">
-      <h1 id="hero-name" class="hero-name">
-        {siteConfig.name}
-      </h1>
-      <p class="hero-role">{siteConfig.role}</p>
-      <div class="hero-actions">
-        <Button href={url('/projects/')}>View projects</Button>
-        <Button variant="secondary" href={url('/#contact')}>
-          Contact
-        </Button>
+  <div class="narrative">
+    <div class="narrative-stage">
+      <div class="hero-space" aria-hidden="true" data-latent-space>
+        <div class="narrative-scrim" data-narrative-scrim></div>
       </div>
-      <p class="hero-hint mono" aria-hidden="true">
-        drag to orbit · <span class="hint-pointer">click</span>
-        <span class="hint-touch">tap</span> a point to open
-      </p>
+      <script
+        type="application/json"
+        id={LATENT_SPACE_DATA_ID}
+        set:html={latentSpaceJson}
+      />
     </div>
-    <ul
-      class="point-links"
-      aria-label="Entries in the latent space"
-      data-point-links
-    >
-      {latentSpace.points.map((point) => (
-        <li>
-          <a href={point.href} data-key={point.key}>
-            {point.title}
-            <span class="mono">
-              {point.kind} · {point.year}
-            </span>
-          </a>
-        </li>
-      ))}
-    </ul>
-  </section>
 
-  <section class="container section" id="about" aria-labelledby="about-heading">
-    <h2 id="about-heading">About</h2>
-    <div class="about-copy">
-      <p>
-        [TODO] First paragraph: who you are and what you build, in one or two
-        plain sentences.
-      </p>
-      <p>
-        [TODO] Second paragraph: the kind of problems you like, and how
-        engineering and machine learning meet in your work.
-      </p>
-      <p>
-        [TODO] Third paragraph: what you are doing now and what you are looking
-        for.
-      </p>
-    </div>
-    <dl class="facts">
-      {facts.map(({ label, value }) => (
-        <div>
-          <dt class="mono">{label}</dt>
-          <dd>{value}</dd>
+    <section class="hero" aria-labelledby="hero-name">
+      <div class="container hero-content">
+        <h1 id="hero-name" class="hero-name">
+          {siteConfig.name}
+        </h1>
+        <p class="hero-role">{siteConfig.role}</p>
+        <div class="hero-actions">
+          <Button href={url('/projects/')}>View projects</Button>
+          <Button variant="secondary" href={url('/#contact')}>
+            Contact
+          </Button>
         </div>
-      ))}
-    </dl>
-  </section>
+        <p class="hero-hint mono" aria-hidden="true">
+          drag to orbit · <span class="hint-pointer">click</span>
+          <span class="hint-touch">tap</span> a point to open
+        </p>
+      </div>
+      <ul
+        class="point-links"
+        aria-label="Entries in the latent space"
+        data-point-links
+      >
+        {latentSpace.points.map((point) => (
+          <li>
+            <a href={point.href} data-key={point.key}>
+              {point.title}
+              <span class="mono">
+                {point.kind} · {point.year}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
 
-  <section
-    class="container section"
-    id="projects"
-    aria-labelledby="projects-heading"
-  >
-    <h2 id="projects-heading">Projects</h2>
-    <ul class="grid">
-      {featuredProjects.map((project) => (
-        <li>
-          <Card
-            title={project.title}
-            summary={project.summary}
-            href={project.href}
-            kind="project"
-            dateRange={formatDateRange(project.startDate, project.endDate)}
-            tags={project.tags}
-            coords={project.coords}
-            placeholder={project.placeholder}
-          >
-            <ProjectCover
-              slot="cover"
+    <section
+      class="container section"
+      id="about"
+      aria-labelledby="about-heading"
+    >
+      <h2 id="about-heading" data-reveal>
+        About
+      </h2>
+      <div class="about-copy" data-reveal-children>
+        <p>
+          [TODO] First paragraph: who you are and what you build, in one or two
+          plain sentences.
+        </p>
+        <p>
+          [TODO] Second paragraph: the kind of problems you like, and how
+          engineering and machine learning meet in your work.
+        </p>
+        <p>
+          [TODO] Third paragraph: what you are doing now and what you are
+          looking for.
+        </p>
+      </div>
+      <dl class="facts">
+        {facts.map(({ label, value }) => (
+          <div>
+            <dt class="mono">{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <section
+      class="container section stage-section"
+      id="projects"
+      aria-labelledby="projects-heading"
+    >
+      <h2 id="projects-heading" data-reveal>
+        Projects
+      </h2>
+      <div class="reduced-scatter">
+        <Scatter2D points={projects} />
+      </div>
+      <ul class="grid">
+        {featuredProjects.map((project) => (
+          <li data-entry-key={project.key}>
+            <Card
+              title={project.title}
+              summary={project.summary}
+              href={project.href}
+              kind="project"
+              dateRange={formatDateRange(project.startDate, project.endDate)}
               tags={project.tags}
-              cover={covers.get(project.id)}
-              variant="card"
-            />
-          </Card>
-        </li>
-      ))}
-    </ul>
-    <a class="more" href={url('/projects/')}>
-      All projects →
-    </a>
-  </section>
+              coords={project.coords}
+              placeholder={project.placeholder}
+            >
+              <ProjectCover
+                slot="cover"
+                tags={project.tags}
+                cover={covers.get(project.id)}
+                variant="card"
+              />
+            </Card>
+          </li>
+        ))}
+      </ul>
+      <a class="more" href={url('/projects/')}>
+        All projects →
+      </a>
+    </section>
 
-  <section
-    class="container section"
-    id="career"
-    aria-labelledby="career-heading"
-  >
-    <h2 id="career-heading">Experience &amp; education</h2>
-    <Timeline entries={career} />
-    <p class="more-links">
-      <a href={url('/experience/')}>All experience →</a>
-      <a href={url('/education/')}>All education →</a>
-    </p>
-  </section>
+    <section
+      class="container section stage-section"
+      id="career"
+      aria-labelledby="career-heading"
+    >
+      <h2 id="career-heading" data-reveal>
+        Experience &amp; education
+      </h2>
+      <Timeline entries={career} />
+      <p class="more-links">
+        <a href={url('/experience/')}>All experience →</a>
+        <a href={url('/education/')}>All education →</a>
+      </p>
+    </section>
+  </div>
 
   <section
     class="container section contact"
     id="contact"
     aria-labelledby="contact-heading"
   >
-    <h2 id="contact-heading">Contact</h2>
-    <p class="contact-copy">
+    <h2 id="contact-heading" data-reveal>
+      Contact
+    </h2>
+    <p class="contact-copy" data-reveal>
       [TODO] One or two sentences inviting people to get in touch, and about
       what.
     </p>
@@ -173,29 +199,46 @@ const facts = [
 
 <script>
   /**
-   * Loads the 3D latent space after the page has loaded, so the hero text paints (and is
-   * the LCP element) before any WebGL code is fetched.
+   * Home page start-up:
+   * - smooth scroll and the hero role scramble start immediately (unless reduced motion);
+   * - the 3D latent space loads after the page has loaded, so the hero text paints (and is the
+   *   LCP element) before any WebGL code is fetched; the scroll narrative then drives it.
    */
   import {
     LATENT_SPACE_DATA_ID,
     parseLatentSpaceData,
   } from '../lib/latent-space-data';
+  import { startSmoothScroll } from '../scripts/smooth-scroll';
+  import { scrambleText } from '../scripts/hero-intro';
+  import { startNarrative } from '../scripts/narrative';
 
+  const reducedMotion = window.matchMedia(
+    '(prefers-reduced-motion: reduce)',
+  ).matches;
   const container = document.querySelector<HTMLElement>('[data-latent-space]');
   const linkList = document.querySelector<HTMLElement>('[data-point-links]');
+  const role = document.querySelector<HTMLElement>('.hero-role');
   const json = document.getElementById(LATENT_SPACE_DATA_ID)?.textContent;
-  if (!container || !linkList || !json) {
+  if (!container || !linkList || !role || !json) {
     throw new Error(
-      'Home: latent space container, link list or data not found',
+      'Home: latent space container, link list, role or data not found',
     );
   }
   const data = parseLatentSpaceData(json);
+
+  if (!reducedMotion) {
+    startSmoothScroll();
+    scrambleText(role, 0.6);
+  }
 
   const start = () =>
     requestAnimationFrame(async () => {
       const { mountLatentSpace } =
         await import('../scripts/latent-space/scene');
-      mountLatentSpace(container, data, linkList);
+      const scene = mountLatentSpace(container, data, linkList);
+      if (!reducedMotion) {
+        startNarrative(scene);
+      }
     });
   if (document.readyState === 'complete') {
     start();
@@ -205,18 +248,73 @@ const facts = [
 </script>
 
 <style>
+  /*
+   * The stage is a full-viewport sticky layer behind the narrative sections (the negative
+   * bottom margin lets the sections scroll over it); it scrolls away when the narrative ends.
+   */
+  .narrative {
+    position: relative;
+    isolation: isolate;
+    margin-top: calc(
+      -1 * var(--nav-height)
+    ); /* sit under the transparent nav */
+  }
+  .narrative-stage {
+    position: sticky;
+    top: 0;
+    z-index: -1;
+    height: 100svh;
+    margin-bottom: -100svh;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* No morph: the stage stays behind the hero only. */
+    .narrative-stage {
+      position: absolute;
+      inset: 0 0 auto;
+      margin-bottom: 0;
+    }
+  }
+
   .hero {
     position: relative;
     display: flex;
     align-items: flex-end;
     min-height: 100svh;
-    margin-top: calc(
-      -1 * var(--nav-height)
-    ); /* sit under the transparent nav */
     padding-block: calc(var(--nav-height) + var(--space-7)) var(--space-8);
-    overflow: hidden;
-    isolation: isolate; /* keeps the canvas (z-index -1) inside the hero and hit-testable */
+    pointer-events: none; /* drags over the hero reach the canvas behind it */
   }
+  /* Hero lines slide up on load (transform only, so the name is painted at once for LCP). */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-name,
+    .hero-role,
+    .hero-actions {
+      animation: hero-rise 0.7s var(--ease-out) both;
+    }
+    .hero-role {
+      animation-delay: 80ms;
+    }
+    .hero-actions {
+      animation-delay: 160ms;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-name,
+    .hero-role,
+    .hero-actions {
+      animation: hero-fade 0.2s ease-out both;
+    }
+  }
+  @keyframes hero-rise {
+    from {
+      transform: translateY(0.4em);
+    }
+  }
+  @keyframes hero-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
   /* Static gradient shows at first paint; the canvas fades in over it once rendered. */
   .hero-space {
     position: absolute;
@@ -231,6 +329,7 @@ const facts = [
   .hero-space :global(canvas) {
     position: absolute;
     inset: 0;
+    z-index: 0;
     width: 100%;
     height: 100%;
     opacity: 0;
@@ -239,8 +338,26 @@ const facts = [
   .hero-space[data-ready] :global(canvas) {
     opacity: 1;
   }
+  /* Fades in behind the sections after the hero so text stays readable over the canvas. */
+  .narrative-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    opacity: 0;
+    pointer-events: none;
+  }
+  @media (min-width: 64rem) {
+    .narrative-scrim {
+      background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--bg) 88%, transparent) 0%,
+        color-mix(in srgb, var(--bg) 70%, transparent) 38%,
+        transparent 60%
+      );
+    }
+  }
   .hero-content {
-    pointer-events: none; /* drags over the text area still reach the canvas */
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -263,6 +380,9 @@ const facts = [
     gap: var(--space-3);
     margin-top: var(--space-2);
     pointer-events: auto;
+  }
+  .contact .hero-actions {
+    animation: none;
   }
   .hero-hint {
     opacity: 0;
@@ -288,6 +408,7 @@ const facts = [
     position: absolute;
     top: 0;
     left: 0;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
@@ -306,6 +427,12 @@ const facts = [
     opacity: 1;
     pointer-events: auto;
   }
+  /* Below the two-column layout the cards cover the stage during the morph: no label. */
+  @media (max-width: 63.99rem) {
+    .hero-space[data-morphing] :global(.latent-label) {
+      display: none;
+    }
+  }
   .hero-space :global(.latent-label-title) {
     font-weight: 600;
     line-height: 1.25;
@@ -319,6 +446,7 @@ const facts = [
     margin: 0;
     padding: 0;
     list-style: none;
+    pointer-events: auto;
   }
   .point-links a:not(:focus-visible) {
     position: absolute;
@@ -352,6 +480,24 @@ const facts = [
     flex-direction: column;
     gap: var(--space-5);
     padding-top: var(--space-9);
+  }
+  /* The 2D scatter and the timeline need scroll room to hold their morph stage. */
+  .stage-section {
+    min-height: 100svh;
+  }
+  /* Wide screens: content in a left column; the scatter and timeline show on the right. */
+  @media (min-width: 64rem) {
+    .narrative .section > :global(*) {
+      max-width: 30rem;
+    }
+  }
+  .reduced-scatter {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reduced-scatter {
+      display: block;
+    }
   }
 
   .about-copy {

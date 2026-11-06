@@ -5,6 +5,8 @@
  * - Touch: first tap selects; tapping the same point or its label opens it; tapping empty
  *   space deselects. Taps pick within TOUCH_PICK_RADIUS.
  * - Keyboard: focusing a link in the hidden list highlights its point; Enter follows the link.
+ * - Scroll: during the morph, pointer picking is off and the page highlights the point of the
+ *   card in view instead (setScrollHighlight).
  * - Reduced motion: no tweening; opening navigates immediately.
  * Picking is done in screen space (projected point centres), matching what the user sees.
  */
@@ -24,7 +26,7 @@ const LINE_DRAW_SECONDS = 0.4;
 const FLY_SECONDS = 0.6;
 const FLY_STOP_DISTANCE = 1.4;
 
-type HighlightSource = 'hover' | 'touch' | 'focus' | 'fly';
+type HighlightSource = 'hover' | 'touch' | 'focus' | 'fly' | 'scroll';
 
 export interface InteractionOptions {
   container: HTMLElement;
@@ -51,6 +53,20 @@ export interface Interaction {
   isFlying(): boolean;
   /** True while any point is highlighted. */
   hasHighlight(): boolean;
+  /**
+   * Turns canvas picking (hover, click, tap) on or off. Turning it off clears pointer
+   * highlights.
+   *
+   * @param enabled - Whether the canvas responds to the pointer.
+   */
+  setPointerEnabled(enabled: boolean): void;
+  /**
+   * Highlights the point of the card currently in view (or clears that highlight).
+   *
+   * @param key - Entry key, or null to clear a scroll highlight.
+   * @throws Error if the key is not a point in the scene.
+   */
+  setScrollHighlight(key: string | null): void;
   /** Back to the resting state: no selection, label or lines, fly-in cancelled. */
   reset(): void;
   dispose(): void;
@@ -106,6 +122,7 @@ export function createInteraction(options: InteractionOptions): Interaction {
   let lineDraw = 0;
   let flyTween: gsap.core.Tween | null = null;
   let pointerDown: { x: number; y: number; id: number } | null = null;
+  let pointerEnabled = true;
 
   /**
    * Projects a point to container pixels.
@@ -205,7 +222,12 @@ export function createInteraction(options: InteractionOptions): Interaction {
   };
 
   const onPointerMove = (event: PointerEvent) => {
-    if (event.pointerType === 'touch' || event.buttons !== 0 || flyTween)
+    if (
+      !pointerEnabled ||
+      event.pointerType === 'touch' ||
+      event.buttons !== 0 ||
+      flyTween
+    )
       return;
     const index = pick(event.clientX, event.clientY, MOUSE_PICK_RADIUS);
     canvas.style.cursor = index === null ? '' : 'pointer';
@@ -228,6 +250,7 @@ export function createInteraction(options: InteractionOptions): Interaction {
     pointerDown = null;
     if (
       !start ||
+      !pointerEnabled ||
       start.id !== event.pointerId ||
       flyTween ||
       Math.hypot(event.clientX - start.x, event.clientY - start.y) >
@@ -300,6 +323,25 @@ export function createInteraction(options: InteractionOptions): Interaction {
     },
     isFlying: () => flyTween !== null,
     hasHighlight: () => highlighted !== null,
+    setPointerEnabled(enabled) {
+      if (enabled === pointerEnabled) return;
+      pointerEnabled = enabled;
+      pointerDown = null;
+      canvas.style.cursor = '';
+      if (!enabled && (source === 'hover' || source === 'touch'))
+        highlight(null, null);
+    },
+    setScrollHighlight(key) {
+      if (key === null) {
+        if (source === 'scroll') highlight(null, null);
+        return;
+      }
+      const index = indexByKey.get(key);
+      if (index === undefined) {
+        throw new Error(`setScrollHighlight: no point with key ${key}`);
+      }
+      highlight(index, 'scroll');
+    },
     reset() {
       flyTween?.kill();
       flyTween = null;

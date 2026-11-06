@@ -13,9 +13,17 @@ const AXIS_LENGTH = 2.6;
 const GRID_SIZE = 9;
 const GRID_DIVISIONS = 18;
 const GRID_Y = -2.4;
+const AXES_OPACITY = 0.35;
+const GRID_OPACITY = 0.5;
 
 export interface Gizmo {
   object: Group;
+  /**
+   * Fades the axes and grid.
+   *
+   * @param opacity - 0 (invisible) to 1 (normal).
+   */
+  setOpacity(opacity: number): void;
   dispose(): void;
 }
 
@@ -56,7 +64,7 @@ export function createGizmo(palette: ScenePalette): Gizmo {
   const axesMaterial = new LineBasicMaterial({
     color: palette.muted,
     transparent: true,
-    opacity: 0.35,
+    opacity: AXES_OPACITY,
   });
   const axes = new LineSegments(axesGeometry, axesMaterial);
 
@@ -69,12 +77,17 @@ export function createGizmo(palette: ScenePalette): Gizmo {
   grid.position.y = GRID_Y;
   const gridMaterial = grid.material as LineBasicMaterial;
   gridMaterial.transparent = true;
-  gridMaterial.opacity = 0.5;
+  gridMaterial.opacity = GRID_OPACITY;
 
   const object = new Group();
   object.add(axes, grid);
   return {
     object,
+    setOpacity(opacity) {
+      axesMaterial.opacity = AXES_OPACITY * opacity;
+      gridMaterial.opacity = GRID_OPACITY * opacity;
+      object.visible = opacity > 0.001;
+    },
     dispose() {
       axesGeometry.dispose();
       axesMaterial.dispose();

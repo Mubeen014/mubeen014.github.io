@@ -21,7 +21,7 @@ const { entries, headingLevel = 3 } = Astro.props;
 
 <ol class="timeline">
   {entries.map((entry) => (
-    <li class:list={['item', entry.kind]}>
+    <li class:list={['item', entry.kind]} data-entry-key={entry.key}>
       <Card
         title={entry.title}
         subtitle={entry.subtitle}

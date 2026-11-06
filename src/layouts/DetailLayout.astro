@@ -106,7 +106,7 @@ const indexLabel = {
         <slot name="cover" />
       </div>
     )}
-    <div class="prose">
+    <div class="prose" data-reveal-children>
       <slot />
     </div>
     {neighbours.length > 0 && <NearestNeighbours neighbours={neighbours} />}
